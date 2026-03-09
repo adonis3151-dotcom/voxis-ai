@@ -1,0 +1,4 @@
+firebase_key.json
+feedback.mp3
+__pycache__/
+.env
