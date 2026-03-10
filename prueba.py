@@ -251,23 +251,25 @@ if st.session_state.usuario_db is None:
     else:
         st.info(t["otp_sent_msg"].format(st.session_state.temp_data["correo"]))
         
-        codigo_ingresado = st.text_input(t["otp_label"], max_chars=4)
-        col1, col2 = st.columns(2)
+        # Usamos 'key' para que el valor se quede pegado en la memoria de la app
+        codigo_ingresado = st.text_input(t["otp_label"], max_chars=4, key="input_pin_usuario")
         
-        if col1.button(t["btn_verify"], use_container_width=True):
-            if str(codigo_ingresado).strip() == str(st.session_state.otp_code).strip():
-                try:
-                    d = st.session_state.temp_data
-                    datos, msg = iniciar_sesion(d["correo"], d["nombres"], d["apellidos"], d["whatsapp"], d["plan"])
-                    st.session_state.usuario_db = datos
-                    st.session_state.otp_sent = False 
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error de conexión con la base de datos: {e}")
+        if st.button(t["btn_verify"], use_container_width=True, type="primary"):
+            # Comparamos lo que está en la 'key' con el código guardado
+            pin_escrito = str(st.session_state.input_pin_usuario).strip()
+            pin_real = str(st.session_state.otp_code).strip()
+            
+            if pin_escrito == pin_real:
+                d = st.session_state.temp_data
+                datos, msg = iniciar_sesion(d["correo"], d["nombres"], d["apellidos"], d["whatsapp"], d["plan"])
+                st.session_state.usuario_db = datos
+                st.session_state.otp_sent = False 
+                st.success("✅ Código correcto. Entrando...")
+                st.rerun()
             else:
-                st.error(t["otp_error"])
+                st.error(f"{t['otp_error']} (Escribiste: {pin_escrito})")
         
-        if col2.button(t["btn_cancel"], use_container_width=True):
+        if st.button(t["btn_cancel"], use_container_width=True):
             st.session_state.otp_sent = False
             st.rerun()
 
