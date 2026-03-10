@@ -204,35 +204,35 @@ if st.session_state.usuario_db is None:
     if not st.session_state.otp_sent:
         st.write(t["login_sub"])
         with st.form("login"):
-            correo = st.text_input(t["email"])
+            correo_input = st.text_input(t["email"])
             nombres = st.text_input(t["names"])
             apellidos = st.text_input(t["lastnames"])
             whatsapp = st.text_input(t["wa"], placeholder="+1 555")
             st.write("---")
             st.write(f"**{t['plan_select']}**")
             plan_elegido = st.radio("Planes", [t["desc_free"], t["desc_standard"], t["desc_pro"]], label_visibility="collapsed")
-            
             st.write("---")
             aceptar_tc = st.checkbox(t["tc_check"])
             
             if st.form_submit_button(t["btn_login"]):
+                # Limpiamos el correo de espacios y lo pasamos a minúsculas
+                correo = correo_input.strip().lower()
+                
                 if not aceptar_tc:
                     st.error(t["tc_error"])
                 elif correo and nombres:
-                    # VERIFICACIÓN DE MODO DIOS (Admin entra sin PIN)
-                    correo_admin = st.secrets.get("ADMIN_EMAIL", "")
+                    # Verificación de Admin Blindada
+                    correo_admin = str(st.secrets.get("ADMIN_EMAIL", "")).strip().lower()
+                    
                     if correo == correo_admin and correo_admin != "":
                         datos, msg = iniciar_sesion(correo, nombres, apellidos, whatsapp, plan_elegido)
                         st.session_state.usuario_db = datos
                         st.rerun()
                     else:
                         # Usuario normal: Generar y Enviar PIN
-                        con_spinner = st.spinner("Enviando código de seguridad..." if idioma_nativo == "Español" else "Sending security code...")
-                        with con_spinner:
+                        with st.spinner("Enviando código..."):
                             codigo_generado = str(random.randint(1000, 9999))
-                            envio_exitoso = enviar_otp(correo, codigo_generado, t)
-                            
-                            if envio_exitoso:
+                            if enviar_otp(correo, codigo_generado, t):
                                 st.session_state.otp_sent = True
                                 st.session_state.otp_code = codigo_generado
                                 st.session_state.temp_data = {
@@ -251,25 +251,23 @@ if st.session_state.usuario_db is None:
     else:
         st.info(t["otp_sent_msg"].format(st.session_state.temp_data["correo"]))
         
-        # Usamos 'key' para que el valor se quede pegado en la memoria de la app
-        codigo_ingresado = st.text_input(t["otp_label"], max_chars=4, key="input_pin_usuario")
+        # Guardamos el código en el estado de sesión directamente
+        codigo_ingresado = st.text_input(t["otp_label"], max_chars=4, key="pin_input")
         
-        if st.button(t["btn_verify"], use_container_width=True, type="primary"):
-            # Comparamos lo que está en la 'key' con el código guardado
-            pin_escrito = str(st.session_state.input_pin_usuario).strip()
-            pin_real = str(st.session_state.otp_code).strip()
-            
-            if pin_escrito == pin_real:
+        col1, col2 = st.columns(2)
+        
+        if col1.button(t["btn_verify"], use_container_width=True, type="primary"):
+            # Comparación exacta y limpia
+            if str(codigo_ingresado).strip() == str(st.session_state.otp_code).strip():
                 d = st.session_state.temp_data
                 datos, msg = iniciar_sesion(d["correo"], d["nombres"], d["apellidos"], d["whatsapp"], d["plan"])
                 st.session_state.usuario_db = datos
                 st.session_state.otp_sent = False 
-                st.success("✅ Código correcto. Entrando...")
                 st.rerun()
             else:
-                st.error(f"{t['otp_error']} (Escribiste: {pin_escrito})")
+                st.error(t["otp_error"])
         
-        if st.button(t["btn_cancel"], use_container_width=True):
+        if col2.button(t["btn_cancel"], use_container_width=True):
             st.session_state.otp_sent = False
             st.rerun()
 
