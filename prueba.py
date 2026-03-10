@@ -251,26 +251,25 @@ if st.session_state.usuario_db is None:
     else:
         st.info(t["otp_sent_msg"].format(st.session_state.temp_data["correo"]))
         
-        with st.form("otp_form"):
-            codigo_ingresado = st.text_input(t["otp_label"], max_chars=4)
-            col1, col2 = st.columns(2)
-            
-            submit_verificar = col1.form_submit_button(t["btn_verify"], use_container_width=True)
-            submit_cancelar = col2.form_submit_button(t["btn_cancel"], use_container_width=True)
-            
-            if submit_verificar:
-                if str(codigo_ingresado).strip() == str(st.session_state.otp_code).strip():
+        codigo_ingresado = st.text_input(t["otp_label"], max_chars=4)
+        col1, col2 = st.columns(2)
+        
+        if col1.button(t["btn_verify"], use_container_width=True):
+            if str(codigo_ingresado).strip() == str(st.session_state.otp_code).strip():
+                try:
                     d = st.session_state.temp_data
                     datos, msg = iniciar_sesion(d["correo"], d["nombres"], d["apellidos"], d["whatsapp"], d["plan"])
                     st.session_state.usuario_db = datos
                     st.session_state.otp_sent = False 
                     st.rerun()
-                else:
-                    st.error(t["otp_error"])
-            
-            if submit_cancelar:
-                st.session_state.otp_sent = False
-                st.rerun()
+                except Exception as e:
+                    st.error(f"Error de conexión con la base de datos: {e}")
+            else:
+                st.error(t["otp_error"])
+        
+        if col2.button(t["btn_cancel"], use_container_width=True):
+            st.session_state.otp_sent = False
+            st.rerun()
 
 # --- PANTALLA 2 & 3: BIENVENIDA Y DIAGNÓSTICO ---
 elif st.session_state.idioma_activo is None:
