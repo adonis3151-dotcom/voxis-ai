@@ -199,75 +199,69 @@ if st.session_state.usuario_db is None:
     if os.path.exists("logo.png"): st.image("logo.png", width=180)
     else: st.title("Voxis AI")
     st.markdown('<p class="slogan-text">Your 24/7 AI Language Trainer</p>', unsafe_allow_html=True)
-    
+
     # 1. PANTALLA DE FORMULARIO INICIAL
     if not st.session_state.otp_sent:
         st.write(t["login_sub"])
-        with st.form("login"):
-            correo_input = st.text_input(t["email"])
-            nombres = st.text_input(t["names"])
-            apellidos = st.text_input(t["lastnames"])
-            whatsapp = st.text_input(t["wa"], placeholder="+1 555")
-            st.write("---")
-            st.write(f"**{t['plan_select']}**")
-            plan_elegido = st.radio("Planes", [t["desc_free"], t["desc_standard"], t["desc_pro"]], label_visibility="collapsed")
-            st.write("---")
-            aceptar_tc = st.checkbox(t["tc_check"])
-            
-            if st.form_submit_button(t["btn_login"]):
-                # Limpiamos el correo de espacios y lo pasamos a minúsculas
-                correo = correo_input.strip().lower()
+        
+        # Quitamos el 'st.form' para que los botones reaccionen al instante
+        correo_in = st.text_input(t["email"], key="email_input_box").strip().lower()
+        nombres = st.text_input(t["names"], key="name_input_box")
+        apellidos = st.text_input(t["lastnames"])
+        whatsapp = st.text_input(t["wa"], placeholder="+1 555")
+        st.write("---")
+        st.write(f"**{t['plan_select']}**")
+        plan_elegido = st.radio("Planes", [t["desc_free"], t["desc_standard"], t["desc_pro"]], label_visibility="collapsed")
+        st.write("---")
+        aceptar_tc = st.checkbox(t["tc_check"])
+        
+        if st.button(t["btn_login"], use_container_width=True, type="primary"):
+            if not aceptar_tc:
+                st.error(t["tc_error"])
+            elif correo_in and nombres:
+                # Verificación de Admin
+                admin_vault = str(st.secrets.get("ADMIN_EMAIL", "")).strip().lower()
                 
-                if not aceptar_tc:
-                    st.error(t["tc_error"])
-                elif correo and nombres:
-                    # Verificación de Admin Blindada
-                    correo_admin = str(st.secrets.get("ADMIN_EMAIL", "")).strip().lower()
-                    
-                    if correo == correo_admin and correo_admin != "":
-                        datos, msg = iniciar_sesion(correo, nombres, apellidos, whatsapp, plan_elegido)
-                        st.session_state.usuario_db = datos
-                        st.rerun()
-                    else:
-                        # Usuario normal: Generar y Enviar PIN
-                        with st.spinner("Enviando código..."):
-                            codigo_generado = str(random.randint(1000, 9999))
-                            if enviar_otp(correo, codigo_generado, t):
-                                st.session_state.otp_sent = True
-                                st.session_state.otp_code = codigo_generado
-                                st.session_state.temp_data = {
-                                    "correo": correo, "nombres": nombres, 
-                                    "apellidos": apellidos, "whatsapp": whatsapp, "plan": plan_elegido
-                                }
-                                st.rerun()
-                            else:
-                                st.error(t["email_error"])
-                else: st.error("⚠️ Fill required fields.")
-                
-        with st.expander(t["tc_title"]):
-            st.markdown(f'<div class="legal-text">{t["tc_text"]}</div>', unsafe_allow_html=True)
-            
+                if correo_in == admin_vault:
+                    datos, msg = iniciar_sesion(correo_in, nombres, apellidos, whatsapp, plan_elegido)
+                    st.session_state.usuario_db = datos
+                    st.rerun()
+                else:
+                    # Usuario normal: Generar y Enviar PIN
+                    with st.spinner("Enviando código..."):
+                        codigo_gen = str(random.randint(1000, 9999))
+                        if enviar_otp(correo_in, codigo_gen, t):
+                            st.session_state.otp_sent = True
+                            st.session_state.otp_code = codigo_gen
+                            st.session_state.temp_data = {
+                                "correo": correo_in, "nombres": nombres, 
+                                "apellidos": apellidos, "whatsapp": whatsapp, "plan": plan_elegido
+                            }
+                            st.rerun()
+                        else:
+                            st.error(t["email_error"])
+            else:
+                st.error("⚠️ Fill required fields / Completa los campos.")
+
     # 2. PANTALLA DE INGRESO DEL PIN (OTP)
     else:
         st.info(t["otp_sent_msg"].format(st.session_state.temp_data["correo"]))
         
-        # Guardamos el código en el estado de sesión directamente
-        codigo_ingresado = st.text_input(t["otp_label"], max_chars=4, key="pin_input")
+        # El 'key' es vital para que Streamlit no borre el número al hacer clic
+        pin_usuario = st.text_input(t["otp_label"], max_chars=4, key="widget_pin")
         
-        col1, col2 = st.columns(2)
-        
-        if col1.button(t["btn_verify"], use_container_width=True, type="primary"):
-            # Comparación exacta y limpia
-            if str(codigo_ingresado).strip() == str(st.session_state.otp_code).strip():
+        if st.button(t["btn_verify"], use_container_width=True, type="primary"):
+            # Comparamos ignorando espacios
+            if str(pin_usuario).strip() == str(st.session_state.otp_code).strip():
                 d = st.session_state.temp_data
                 datos, msg = iniciar_sesion(d["correo"], d["nombres"], d["apellidos"], d["whatsapp"], d["plan"])
                 st.session_state.usuario_db = datos
                 st.session_state.otp_sent = False 
                 st.rerun()
             else:
-                st.error(t["otp_error"])
+                st.error(f"{t['otp_error']} (Escribiste: {pin_usuario})")
         
-        if col2.button(t["btn_cancel"], use_container_width=True):
+        if st.button(t["btn_cancel"], use_container_width=True):
             st.session_state.otp_sent = False
             st.rerun()
 
