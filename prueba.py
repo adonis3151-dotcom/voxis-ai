@@ -259,7 +259,7 @@ if st.session_state.usuario_db is None:
             submit_cancelar = col2.form_submit_button(t["btn_cancel"], use_container_width=True)
             
             if submit_verificar:
-                if codigo_ingresado == st.session_state.otp_code:
+                if str(codigo_ingresado).strip() == str(st.session_state.otp_code).strip():
                     d = st.session_state.temp_data
                     datos, msg = iniciar_sesion(d["correo"], d["nombres"], d["apellidos"], d["whatsapp"], d["plan"])
                     st.session_state.usuario_db = datos
