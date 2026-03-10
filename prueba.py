@@ -18,7 +18,8 @@ import os
 API_KEY_FREE = st.secrets["GEMINI_API_KEY"]
 
 if not firebase_admin._apps:
-    cred = credentials.Certificate("firebase_key.json")
+    firebase_credentials = json.loads(st.secrets["FIREBASE_KEY"])
+    cred = credentials.Certificate(firebase_credentials)
     firebase_admin.initialize_app(cred)
 db = firestore.client()
 
