@@ -2,601 +2,588 @@ import streamlit as st
 from google import genai
 import firebase_admin
 from firebase_admin import credentials, firestore
-from google.cloud.firestore import FieldFilter
 from datetime import date
 import json
 import time
 import io
+import smtplib
+from email.mime.text import MIMEText
+import random
 import speech_recognition as sr
 from gtts import gTTS
 from audio_recorder_streamlit import audio_recorder
+import os
 
 # --- 1. CONFIGURACIÓN DE LLAVES Y FIREBASE ---
-API_KEY_FREE = "AIzaSyDzyIgcyxI_xau0WVvs1UPQLXU73CURd3o"
-API_KEY_PAID = "TU_LLAVE_DE_PAGO_AQUI"
+API_KEY_FREE = st.secrets["GEMINI_API_KEY"]
 
 if not firebase_admin._apps:
     cred = credentials.Certificate("firebase_key.json")
     firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-st.set_page_config(page_title="Voxis AI", page_icon="🎙️")
+# --- 2. CONFIGURACIÓN DE PÁGINA Y DISEÑO CSS ---
+icono_pagina = "logo.png" if os.path.exists("logo.png") else "🎙️"
+st.set_page_config(page_title="Voxis AI", page_icon=icono_pagina)
 
-# --- 2. CONFIGURACIÓN DE IDIOMAS Y TRADUCCIONES ---
+st.markdown("""
+    <style>
+    .stApp { background-color: #F4F5F7; } 
+    h1, h2, h3 { color: #0047AB !important; font-family: 'Helvetica Neue', sans-serif; } 
+    .slogan-text { color: #5F6368; font-size: 1.2rem; font-style: italic; margin-bottom: 2rem; margin-top: -10px; }
+    .stButton>button, .stFormSubmitButton>button { background-color: #FF7F50; color: white; border-radius: 8px; border: none; font-weight: bold; transition: 0.3s; }
+    .stButton>button:hover, .stFormSubmitButton>button:hover { background-color: #E0693E; color: white; }
+    div[data-testid="stMetricValue"] { color: #FF7F50; font-weight: bold; }
+    div.stAlert { border-radius: 10px; border-left: 5px solid #0047AB; }
+    .stTextInput>div>div>input { background-color: #E2E6EA !important; color: #111111 !important; border-radius: 6px; border: 1px solid #CCCCCC; }
+    .legal-text { font-size: 0.8rem; color: #6c757d; }
+    
+    button[data-baseweb="tab"] { padding: 0.8rem 1.5rem !important; }
+    button[data-baseweb="tab"] div[data-testid="stMarkdownContainer"] p { font-size: 1.3rem !important; font-weight: 600 !important; }
+    div[data-baseweb="tab-list"] { gap: 15px; padding-bottom: 5px; }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- 3. DICCIONARIO MULTILINGÜE COMPLETO ---
+UI_TEXT = {
+    "Español": {"native_lang": "🗣️ Idioma Nativo:", "record_btn": "🎙️ Grabar (Max {}s)", "login_sub": "Identifícate para comenzar.", "email": "Correo:", "names": "Nombres:", "lastnames": "Apellidos:", "wa": "WhatsApp:", "plan_select": "Elige tu plan inicial:", "btn_login": "Entrar / Registrarse", "greeting": "Hola", "plan_label": "Plan actual", "trainings": "Entrenamientos", "logout": "Cerrar Sesión", "tab_train": "🏋️ Entrenamiento", "tab_upgrade": "⭐ Mejorar Plan", "tab_agent": "🤖 Ruta de Estudio IA", "up_title": "Desbloquea tu potencial 🚀", "up_sub": "(Pronto: Pagos directos)", "learn_prompt": "🌐 Idioma a entrenar:", "record": "Presiona el micro para hablar en", "write": "O escribe en", "btn_send": "Enviar 🚀", "listening": "Escuchando...", "analyzing": "Analizando...", "score": "Puntaje", "correction": "Corrección:", "pronunciation": "Pronunciación:", "tip": "Tip:", "err_char": "Límite: {} caracteres.", "err_audio": "No pudimos escuchar bien. Intenta hablar más claro o escribe tu respuesta.", "limit_reached": "🔒 Límite diario alcanzado.", "repeat": "Frase ya procesada.", "desc_free": "Plan FREE ($0): 5 frases/día", "desc_standard": "Plan STANDARD ($1): 20 frases/día", "desc_pro": "Plan PRO ($5): 100 frases/día", "welcome_title": "¡Bienvenido, {}!", "welcome_ask": "¿Qué idioma quieres practicar hoy?", "btn_continue": "Continuar 👉", "diag_title": "🎯 ¡Casi listos!", "diag_prompt": "Responde en **{}**: ¿Por qué quieres aprender este idioma?", "diag_analyzing": "Evaluando nivel...", "diag_success": "¡Genial! Tu nivel en {} es: {}", "change_lang": "🔄 Cambiar Idioma", "lang_name": {"Inglés": "Inglés", "Español": "Español", "Francés": "Francés", "Alemán": "Alemán", "Italiano": "Italiano", "Portugués": "Portugués", "Mandarín": "Mandarín", "Japonés": "Japonés", "Coreano": "Coreano", "Ruso": "Ruso"}, "choose_mode": "Elige tu modo de estudio:", "mode_fund": "🧱 Fundamentos", "mode_fund_desc": "Juega, aprende y escucha tus primeras palabras.", "lesson_txt": "Nivel", "btn_gen_lesson": "📚 Iniciar Reto de Hoy", "btn_next": "📚 Siguiente ⏭️", "mode_real": "🎭 Situaciones Reales", "mode_real_desc": "Pierde el miedo hablando en escenarios prácticos de la vida diaria.", "prep_lesson": "Generando reto interactivo...", "lesson_passed": "🎉 ¡Reto superado! Haz clic en 'Siguiente' para avanzar.", "role_passed": "🎉 ¡Excelente trabajo! Haz clic en 'Siguiente' para otro Role-play.", "topics": ["Saludos", "Pronombres", "Verbos básicos", "Números", "Colores", "Comida", "Familia", "Días y Meses", "Ropa", "Cuerpo", "Animales", "Profesiones", "Clima", "Hogar", "Emociones", "Verbos de acción", "Transporte", "Ciudad", "La Hora", "Rutina"], "super_power_title": "⚡ Práctica Libre", "super_power_desc": "Presiona el micrófono, di cualquier frase y la IA corregirá tu pronunciación y gramática como un tutor real al instante.", "tc_check": "Acepto los Términos, Condiciones y Política de Privacidad", "tc_error": "⚠️ Debes aceptar los Términos y Condiciones para continuar.", "tc_title": "📜 Ver Términos y Condiciones", "tc_text": "**Voxis AI - Términos Básicos (Placeholder)**<br>1. Al registrarte aceptas el uso de cookies de sesión para la aplicación.<br>2. Los datos de audio no se comparten; se procesan a través de servidores seguros de Google AI.<br>3. Las cuentas Free están sujetas a límites diarios de cuota.<br>*(El documento legal final se agregará en la versión web pública).*\",", "otp_sent_msg": "📧 Hemos enviado un código a **{}**", "otp_label": "Código de verificación de 4 dígitos:", "btn_verify": "Verificar Código", "btn_cancel": "Cancelar / Volver", "otp_error": "❌ Código incorrecto. Intenta de nuevo.", "email_error": "❌ Error al enviar el correo. Verifica que tu dirección exista.", "email_subject": "Tu código de acceso a Voxis AI", "email_body": "¡Hola!\n\nTu código de acceso seguro para entrar a Voxis AI es: {}\n\nSi no solicitaste esto, puedes ignorar este correo."},
+    "Inglés": {"native_lang": "🗣️ Native Language:", "record_btn": "🎙️ Record (Max {}s)", "login_sub": "Log in to start.", "email": "Email:", "names": "First Name:", "lastnames": "Last Name:", "wa": "WhatsApp:", "plan_select": "Choose starting plan:", "btn_login": "Login / Register", "greeting": "Hello", "plan_label": "Current Plan", "trainings": "Trainings", "logout": "Log Out", "tab_train": "🏋️ Training", "tab_upgrade": "⭐ Upgrade Plan", "tab_agent": "🤖 AI Study Path", "up_title": "Unlock your potential 🚀", "up_sub": "(Soon: Direct payments)", "learn_prompt": "🌐 Language to train:", "record": "Tap mic to speak in", "write": "Or type in", "btn_send": "Send 🚀", "listening": "Listening...", "analyzing": "Analyzing...", "score": "Score", "correction": "Correction:", "pronunciation": "Pronunciation:", "tip": "Tip:", "err_char": "Limit: {} chars.", "err_audio": "Could not hear you well. Please speak louder or type.", "limit_reached": "🔒 Daily limit reached.", "repeat": "Phrase already processed.", "desc_free": "FREE Plan ($0): 5 phrases/day", "desc_standard": "STANDARD Plan ($1): 20 phrases/day", "desc_pro": "PRO Plan ($5): 100 phrases/day", "welcome_title": "Welcome, {}!", "welcome_ask": "What language do you want to practice?", "btn_continue": "Continue 👉", "diag_title": "🎯 Almost ready!", "diag_prompt": "Answer in **{}**: Why do you want to learn this language?", "diag_analyzing": "Evaluating level...", "diag_success": "Great! Your level in {} is: {}", "change_lang": "🔄 Change Language", "lang_name": {"Inglés": "English", "Español": "Spanish", "Francés": "French", "Alemán": "German", "Italiano": "Italian", "Portugués": "Portuguese", "Mandarín": "Mandarin", "Japonés": "Japanese", "Coreano": "Korean", "Ruso": "Russian"}, "choose_mode": "Choose your study mode:", "mode_fund": "🧱 Fundamentals", "mode_fund_desc": "Play, learn and listen to your first words.", "lesson_txt": "Level", "btn_gen_lesson": "📚 Start Today's Challenge", "btn_next": "📚 Next ⏭️", "mode_real": "🎭 Real Scenarios", "mode_real_desc": "Lose the fear by speaking in practical daily scenarios.", "prep_lesson": "Generating interactive challenge...", "lesson_passed": "🎉 Challenge passed! Click 'Next' to advance.", "role_passed": "🎉 Excellent work! Click 'Next' for another Role-play.", "topics": ["Greetings", "Pronouns", "Basic Verbs", "Numbers", "Colors", "Food", "Family", "Days & Months", "Clothes", "Body", "Animals", "Professions", "Weather", "Home", "Emotions", "Action Verbs", "Transportation", "City", "Time", "Routine"], "super_power_title": "⚡ Free Practice", "super_power_desc": "Press the microphone, say any phrase, and the AI will correct your pronunciation and grammar like a real tutor instantly.", "tc_check": "I accept the Terms, Conditions, and Privacy Policy", "tc_error": "⚠️ You must accept the Terms and Conditions to continue.", "tc_title": "📜 View Terms and Conditions", "tc_text": "**Voxis AI - Basic Terms (Placeholder)**<br>1. By registering, you accept the use of session cookies.<br>2. Audio data is not shared; it is processed via secure Google AI servers.<br>3. Free accounts are subject to daily quota limits.<br>*(The final legal document will be added in the public web version).*\",", "otp_sent_msg": "📧 We sent a code to **{}**", "otp_label": "4-digit verification code:", "btn_verify": "Verify Code", "btn_cancel": "Cancel / Go back", "otp_error": "❌ Incorrect code. Try again.", "email_error": "❌ Error sending email. Check the address.", "email_subject": "Your Voxis AI Access Code", "email_body": "Hello!\n\nYour secure access code for Voxis AI is: {}\n\nIf you didn't request this, please ignore this email."},
+    "Francés": {"native_lang": "🗣️ Langue Maternelle:", "record_btn": "🎙️ Enregistrer (Max {}s)", "login_sub": "Connectez-vous.", "email": "E-mail:", "names": "Prénoms:", "lastnames": "Noms:", "wa": "WhatsApp:", "plan_select": "Forfait:", "btn_login": "Connexion / Inscription", "greeting": "Bonjour", "plan_label": "Forfait", "trainings": "Formations", "logout": "Déconnexion", "tab_train": "🏋️ Entraînement", "tab_upgrade": "⭐ Améliorer Forfait", "tab_agent": "🤖 Parcours IA", "up_title": "Libérez votre potentiel 🚀", "up_sub": "(Bientôt: Paiements)", "learn_prompt": "🌐 Langue à former:", "record": "Parlez en", "write": "Ou tapez en", "btn_send": "Envoyer 🚀", "listening": "Écoute...", "analyzing": "Analyse...", "score": "Score", "correction": "Correction:", "pronunciation": "Prononciation:", "tip": "Conseil:", "err_char": "Limite: {} car.", "err_audio": "Nous n'avons pas bien entendu. Parlez plus fort.", "limit_reached": "🔒 Limite atteinte.", "repeat": "Phrase déjà traitée.", "desc_free": "Plan FREE (0$): 5/jour", "desc_standard": "Plan STANDARD (1$): 20/jour", "desc_pro": "Plan PRO (5$): 100/jour", "welcome_title": "Bienvenue, {}!", "welcome_ask": "Quelle langue pratiquer?", "btn_continue": "Continuer 👉", "diag_title": "🎯 Presque prêt!", "diag_prompt": "Répondez en **{}**: Pourquoi apprendre cette langue?", "diag_analyzing": "Évaluation...", "diag_success": "Super! Niveau en {} : {}", "change_lang": "🔄 Changer de Langue", "lang_name": {"Inglés": "Anglais", "Español": "Espagnol", "Francés": "Français", "Alemán": "Allemand", "Italiano": "Italien", "Portugués": "Portugais", "Mandarín": "Mandarin", "Japonés": "Japonais", "Coreano": "Coréen", "Ruso": "Russe"}, "choose_mode": "Choisissez votre mode :", "mode_fund": "🧱 Fondamentaux", "mode_fund_desc": "Jouez, apprenez et écoutez vos premiers mots.", "lesson_txt": "Niveau", "btn_gen_lesson": "📚 Démarrer le défi", "btn_next": "📚 Suivant ⏭️", "mode_real": "🎭 Scénarios Réels", "mode_real_desc": "Perdez la peur en parlant dans des scénarios quotidiens.", "prep_lesson": "Génération du défi interactif...", "lesson_passed": "🎉 Défi réussi! Cliquez sur 'Suivant' pour avancer.", "role_passed": "🎉 Excellent travail! Cliquez sur 'Suivant' pour un autre jeu de rôle.", "topics": ["Salutations", "Pronoms", "Verbes", "Nombres", "Couleurs", "Nourriture", "Famille", "Jours", "Vêtements", "Corps", "Animaux", "Professions", "Météo", "Maison", "Émotions", "Verbes d'action", "Transport", "Ville", "Heure", "Routine"], "super_power_title": "⚡ Pratique Libre", "super_power_desc": "Appuyez sur le microphone, dites n'importe quelle phrase, et l'IA corrigera votre prononciation et votre grammaire comme un vrai tuteur.", "tc_check": "J'accepte les conditions générales et la politique de confidentialité", "tc_error": "⚠️ Vous devez accepter les conditions pour continuer.", "tc_title": "📜 Voir les conditions générales", "tc_text": "**Voxis AI - Conditions (Espace réservé)**<br>1. Vous acceptez l'utilisation de cookies de session.<br>2. L'audio est traité via des serveurs sécurisés Google AI.<br>3. Les quotas quotidiens s'appliquent.<br>*(Document final au lancement web).*\",", "otp_sent_msg": "📧 Code envoyé à **{}**", "otp_label": "Code de vérification (4 chiffres):", "btn_verify": "Vérifier", "btn_cancel": "Annuler", "otp_error": "❌ Code incorrect.", "email_error": "❌ Erreur d'e-mail.", "email_subject": "Code d'accès Voxis AI", "email_body": "Bonjour,\n\nVotre code d'accès est : {}"},
+    "Alemán": {"native_lang": "🗣️ Muttersprache:", "record_btn": "🎙️ Aufnehmen (Max {}s)", "login_sub": "Melden Sie sich an.", "email": "E-Mail:", "names": "Vorname:", "lastnames": "Nachname:", "wa": "WhatsApp:", "plan_select": "Plan wählen:", "btn_login": "Anmelden / Registrieren", "greeting": "Hallo", "plan_label": "Plan", "trainings": "Trainings", "logout": "Abmelden", "tab_train": "🏋️ Training", "tab_upgrade": "⭐ Upgrade", "tab_agent": "🤖 KI-Lernpfad", "up_title": "Potenzial ausschöpfen 🚀", "up_sub": "(Bald: Zahlungen)", "learn_prompt": "🌐 Sprache:", "record": "Sprechen in", "write": "Oder tippen in", "btn_send": "Senden 🚀", "listening": "Zuhören...", "analyzing": "Analysieren...", "score": "Punktzahl", "correction": "Korrektur:", "pronunciation": "Aussprache:", "tip": "Tipp:", "err_char": "Limit: {} Zeichen.", "err_audio": "Wir konnten Sie nicht hören.", "limit_reached": "🔒 Tageslimit erreicht.", "repeat": "Satz verarbeitet.", "desc_free": "FREE-Plan (0$): 5/Tag", "desc_standard": "STANDARD-Plan (1$): 20/Tag", "desc_pro": "PRO-Plan (5$): 100/Tag", "welcome_title": "Willkommen, {}!", "welcome_ask": "Welche Sprache üben?", "btn_continue": "Weiter 👉", "diag_title": "🎯 Fast fertig!", "diag_prompt": "Antworte auf **{}**: Warum diese Sprache lernen?", "diag_analyzing": "Bewertung...", "diag_success": "Großartig! Niveau in {} : {}", "change_lang": "🔄 Sprache ändern", "lang_name": {"Inglés": "Englisch", "Español": "Spanisch", "Francés": "Französisch", "Alemán": "Deutsch", "Italiano": "Italienisch", "Portugués": "Portugiesisch", "Mandarín": "Mandarin", "Japonés": "Japanisch", "Coreano": "Koreanisch", "Ruso": "Russisch"}, "choose_mode": "Lernmodus wählen:", "mode_fund": "🧱 Grundlagen", "mode_fund_desc": "Spielen, lernen und hören Sie Ihre ersten Wörter.", "lesson_txt": "Level", "btn_gen_lesson": "📚 Herausforderung starten", "btn_next": "📚 Nächste ⏭️", "mode_real": "🎭 Echte Szenarien", "mode_real_desc": "Sprechen Sie ohne Angst in täglichen Szenarien.", "prep_lesson": "Interaktive Herausforderung wird erstellt...", "lesson_passed": "🎉 Bestanden! Klick 'Nächste', um fortzufahren.", "role_passed": "🎉 Hervorragende Arbeit! Klick 'Nächste'.", "topics": ["Begrüßungen", "Pronomen", "Verben", "Zahlen", "Farben", "Essen", "Familie", "Tage", "Kleidung", "Körper", "Tiere", "Berufe", "Wetter", "Zuhause", "Emotionen", "Aktionsverben", "Transport", "Stadt", "Zeit", "Routine"], "super_power_title": "⚡ Freies Üben", "super_power_desc": "Drücke auf das Mikrofon, sage einen beliebigen Satz und die KI korrigiert deine Aussprache.", "tc_check": "Ich akzeptiere die Allgemeinen Geschäftsbedingungen", "tc_error": "⚠️ Sie müssen die Bedingungen akzeptieren, um fortzufahren.", "tc_title": "📜 AGB anzeigen", "tc_text": "**Voxis AI - Bedingungen (Platzhalter)**<br>1. Mit der Registrierung akzeptieren Sie Sitzungscookies.<br>2. Audio wird über Google AI verarbeitet.<br>3. Quoten können variieren.<br>*(Endgültiges Dokument beim Web-Start).*\",", "otp_sent_msg": "📧 Code gesendet an **{}**", "otp_label": "Bestätigungscode (4 Ziffern):", "btn_verify": "Überprüfen", "btn_cancel": "Abbrechen", "otp_error": "❌ Falscher Code.", "email_error": "❌ E-Mail-Fehler.", "email_subject": "Voxis AI Zugangscode", "email_body": "Hallo!\n\nDein Zugangscode ist: {}"},
+    "Italiano": {"native_lang": "🗣️ Lingua Madre:", "record_btn": "🎙️ Registra (Max {}s)", "login_sub": "Accedi per iniziare.", "email": "Email:", "names": "Nome:", "lastnames": "Cognome:", "wa": "WhatsApp:", "plan_select": "Scegli piano:", "btn_login": "Accedi / Registrati", "greeting": "Ciao", "plan_label": "Piano", "trainings": "Allenamenti", "logout": "Esci", "tab_train": "🏋️ Allenamento", "tab_upgrade": "⭐ Migliora", "tab_agent": "🤖 Percorso IA", "up_title": "Sblocca potenziale 🚀", "up_sub": "(Presto: Pagamenti)", "learn_prompt": "🌐 Lingua:", "record": "Parla in", "write": "O scrivi in", "btn_send": "Invia 🚀", "listening": "Ascoltando...", "analyzing": "Analizzando...", "score": "Punteggio", "correction": "Correzione:", "pronunciation": "Pronuncia:", "tip": "Suggerimento:", "err_char": "Limite: {} car.", "err_audio": "Non ti abbiamo sentito bene. Parla più forte.", "limit_reached": "🔒 Limite raggiunto.", "repeat": "Già elaborata.", "desc_free": "Piano FREE ($0): 5/giorno", "desc_standard": "Piano STANDARD ($1): 20/giorno", "desc_pro": "Piano PRO ($5): 100/giorno", "welcome_title": "Benvenuto, {}!", "welcome_ask": "Che lingua vuoi praticare?", "btn_continue": "Continua 👉", "diag_title": "🎯 Quasi pronti!", "diag_prompt": "Rispondi in **{}**: Perché vuoi imparare?", "diag_analyzing": "Valutazione...", "diag_success": "Ottimo! Livello in {} : {}", "change_lang": "🔄 Cambia Lingua", "lang_name": {"Inglés": "Inglese", "Español": "Spagnolo", "Francés": "Francese", "Alemán": "Tedesco", "Italiano": "Italiano", "Portugués": "Portoghese", "Mandarín": "Mandarino", "Japonés": "Giapponese", "Coreano": "Coreano", "Ruso": "Russo"}, "choose_mode": "Scegli la modalità:", "mode_fund": "🧱 Fondamenti", "mode_fund_desc": "Gioca, impara e ascolta le tue prime parole.", "lesson_txt": "Livello", "btn_gen_lesson": "📚 Inizia Sfida", "btn_next": "📚 Avanti ⏭️", "mode_real": "🎭 Scenari Reali", "mode_real_desc": "Parla senza paura in scenari quotidiani.", "prep_lesson": "Generazione sfida interattiva...", "lesson_passed": "🎉 Superato! Clicca 'Avanti' per il prossimo livello.", "role_passed": "🎉 Ottimo lavoro! Clicca 'Avanti'.", "topics": ["Saluti", "Pronomi", "Verbi", "Numeri", "Colori", "Cibo", "Famiglia", "Giorni", "Vestiti", "Corpo", "Animali", "Professioni", "Meteo", "Casa", "Emozioni", "Verbi di azione", "Trasporto", "Città", "Ora", "Routine"], "super_power_title": "⚡ Pratica Libera", "super_power_desc": "Premi il microfono, di' qualsiasi frase e l'IA correggerà la tua pronuncia all'istante.", "tc_check": "Accetto i Termini, le Condizioni e la Privacy Policy", "tc_error": "⚠️ Devi accettare i Termini e le Condizioni.", "tc_title": "📜 Visualizza Termini e Condizioni", "tc_text": "**Voxis AI - Termini (Segnaposto)**<br>1. Registrandoti accetti i cookie di sessione.<br>2. L'audio è elaborato tramite server sicuri Google AI.<br>3. Le quote giornaliere si applicano.<br>*(Il documento finale sarà aggiunto al lancio web).*\",", "otp_sent_msg": "📧 Codice inviato a **{}**", "otp_label": "Codice di verifica:", "btn_verify": "Verifica", "btn_cancel": "Annulla", "otp_error": "❌ Codice errato.", "email_error": "❌ Errore email.", "email_subject": "Codice di accesso Voxis AI", "email_body": "Ciao!\n\nIl tuo codice è: {}"},
+    "Portugués": {"native_lang": "🗣️ Língua Nativa:", "record_btn": "🎙️ Gravar (Max {}s)", "login_sub": "Faça login.", "email": "E-mail:", "names": "Nome:", "lastnames": "Sobrenome:", "wa": "WhatsApp:", "plan_select": "Escolha o plano:", "btn_login": "Entrar / Registrar", "greeting": "Olá", "plan_label": "Plano", "trainings": "Treinos", "logout": "Sair", "tab_train": "🏋️ Treino", "tab_upgrade": "⭐ Melhorar Plano", "tab_agent": "🤖 Trilha IA", "up_title": "Desbloqueie potencial 🚀", "up_sub": "(Em breve: Pagamentos)", "learn_prompt": "🌐 Idioma:", "record": "Fale em", "write": "Ou digite em", "btn_send": "Enviar 🚀", "listening": "Ouvindo...", "analyzing": "Analisando...", "score": "Pontuação", "correction": "Correção:", "pronunciation": "Pronúncia:", "tip": "Dica:", "err_char": "Limite: {} car.", "err_audio": "Não conseguimos ouvir bem. Fale mais alto.", "limit_reached": "🔒 Limite atingido.", "repeat": "Frase processada.", "desc_free": "Plano FREE ($0): 5/dia", "desc_standard": "Plano STANDARD ($1): 20/dia", "desc_pro": "Plano PRO ($5): 100/dia", "welcome_title": "Bem-vindo, {}!", "welcome_ask": "Qual idioma praticar?", "btn_continue": "Continuar 👉", "diag_title": "🎯 Quase pronto!", "diag_prompt": "Responda em **{}**: Por que aprender este idioma?", "diag_analyzing": "Avaliando...", "diag_success": "Ótimo! Nível em {} : {}", "change_lang": "🔄 Mudar Idioma", "lang_name": {"Inglés": "Inglês", "Español": "Espanhol", "Francés": "Francês", "Alemán": "Alemão", "Italiano": "Italiano", "Portugués": "Português", "Mandarín": "Mandarim", "Japonés": "Japonês", "Coreano": "Coreano", "Ruso": "Russo"}, "choose_mode": "Escolha seu modo:", "mode_fund": "🧱 Fundamentos", "mode_fund_desc": "Jogue, aprenda e ouça suas primeiras palavras.", "lesson_txt": "Nível", "btn_gen_lesson": "📚 Iniciar Desafio", "btn_next": "📚 Próximo ⏭️", "mode_real": "🎭 Cenários Reais", "mode_real_desc": "Perca o medo falando em cenários diários.", "prep_lesson": "Gerando desafio interativo...", "lesson_passed": "🎉 Sucesso! Clique em 'Próximo' para avançar.", "role_passed": "🎉 Excelente! Clique em 'Próximo' para outro cenário.", "topics": ["Saudações", "Pronomes", "Verbos", "Números", "Cores", "Comida", "Família", "Dias", "Roupas", "Corpo", "Animais", "Profissões", "Clima", "Casa", "Emoções", "Ação", "Transporte", "Cidade", "Hora", "Rotina"], "super_power_title": "⚡ Prática Livre", "super_power_desc": "Pressione o microfone, diga qualquer frase e a IA corrigirá sua pronúncia e gramática instantaneamente.", "tc_check": "Aceito os Termos, Condições e Política de Privacidade", "tc_error": "⚠️ Você deve aceitar os Termos e Condições.", "tc_title": "📜 Ver Termos e Condições", "tc_text": "**Voxis AI - Termos (Espaço reservado)**<br>1. Ao registrar-se você aceita os cookies de sessão.<br>2. O áudio é processado via servidores seguros do Google AI.<br>3. Contas gratuitas têm cotas diárias.<br>*(O documento legal final será adicionado no lançamento da web).*\",", "otp_sent_msg": "📧 Enviamos um código para **{}**", "otp_label": "Código de verificação:", "btn_verify": "Verificar", "btn_cancel": "Cancelar", "otp_error": "❌ Código incorreto.", "email_error": "❌ Erro ao enviar e-mail.", "email_subject": "Código de acesso Voxis AI", "email_body": "Olá!\n\nSeu código é: {}"},
+    "Mandarín": {"native_lang": "🗣️ 母语:", "record_btn": "🎙️ 录音 (最多{}秒)", "login_sub": "登录以开始。", "email": "电子邮件:", "names": "名:", "lastnames": "姓:", "wa": "WhatsApp:", "plan_select": "选择计划:", "btn_login": "登录 / 注册", "greeting": "你好", "plan_label": "计划", "trainings": "训练", "logout": "登出", "tab_train": "🏋️ 训练", "tab_upgrade": "⭐ 升级", "tab_agent": "🤖 AI 路径", "up_title": "释放潜力 🚀", "up_sub": "(即将推出)", "learn_prompt": "🌐 语言:", "record": "用此语言说话:", "write": "或输入:", "btn_send": "发送 🚀", "listening": "倾听中...", "analyzing": "分析中...", "score": "分数", "correction": "纠正:", "pronunciation": "发音:", "tip": "提示:", "err_char": "限制: {} 字符。", "err_audio": "听不清楚，请大声说话或输入。", "limit_reached": "🔒 达到限额。", "repeat": "已处理。", "desc_free": "FREE 计划 ($0): 5句/天", "desc_standard": "STANDARD 计划 ($1): 20句/天", "desc_pro": "PRO 计划 ($5): 100句/天", "welcome_title": "欢迎, {}!", "welcome_ask": "想练习什么语言？", "btn_continue": "继续 👉", "diag_title": "🎯 差不多了！", "diag_prompt": "请用 **{}** 回答：为什么想学？", "diag_analyzing": "评估中...", "diag_success": "太棒了！{} 级别: {}", "change_lang": "🔄 更改语言", "lang_name": {"Inglés": "英语", "Español": "西班牙语", "Francés": "法语", "Alemán": "德语", "Italiano": "意大利语", "Portugués": "葡萄牙语", "Mandarín": "中文", "Japonés": "日语", "Coreano": "韩语", "Ruso": "俄语"}, "choose_mode": "选择模式:", "mode_fund": "🧱 基础知识", "mode_fund_desc": "边玩边学，聆听你的第一批单词。", "lesson_txt": "水平", "btn_gen_lesson": "📚 开始今日挑战", "btn_next": "📚 下一步 ⏭️", "mode_real": "🎭 真实场景", "mode_real_desc": "在日常实用场景中开口说，消除恐惧。", "prep_lesson": "正在生成互动挑战...", "lesson_passed": "🎉 挑战成功！点击'下一步'继续。", "role_passed": "🎉 干得好！点击'下一步'进行另一个角色扮演。", "topics": ["问候", "代词", "动词", "数字", "颜色", "食物", "家庭", "日期", "衣服", "身体", "动物", "职业", "天气", "家庭用品", "情绪", "动作", "交通", "城市", "时间", "日常"], "super_power_title": "⚡ 自由练习", "super_power_desc": "按下麦克风，说出任何短语，AI 将像真正的导师一样立即纠正您的发音和语法。", "tc_check": "我接受条款，条件和隐私政策", "tc_error": "⚠️ 您必须接受条款和条件才能继续。", "tc_title": "📜 查看条款和条件", "tc_text": "**Voxis AI - 条款 (占位符)**<br>1. 注册即表示您接受会话 cookie。<br>2. 音频数据不会共享；它通过安全的 Google AI 处理。<br>3. 每日有额度限制。<br>*(最终法律文件将在公开发布时添加)。*\",", "otp_sent_msg": "📧 代码已发送至 **{}**", "otp_label": "验证码:", "btn_verify": "验证", "btn_cancel": "取消", "otp_error": "❌ 代码错误。", "email_error": "❌ 邮件发送失败。", "email_subject": "Voxis AI 访问代码", "email_body": "您的代码是: {}"},
+    "Japonés": {"native_lang": "🗣️ 母国語:", "record_btn": "🎙️ 録音 (最大{}秒)", "login_sub": "ログインして開始。", "email": "Eメール:", "names": "名:", "lastnames": "姓:", "wa": "WhatsApp:", "plan_select": "プラン:", "btn_login": "ログイン / 登録", "greeting": "こんにちは", "plan_label": "プラン", "trainings": "トレーニング", "logout": "ログアウト", "tab_train": "🏋️ 練習", "tab_upgrade": "⭐ アップグレード", "tab_agent": "🤖 AI パス", "up_title": "可能性を解き放つ 🚀", "up_sub": "(まもなく)", "learn_prompt": "🌐 言語:", "record": "話す:", "write": "または入力:", "btn_send": "送信 🚀", "listening": "聞いています...", "analyzing": "分析中...", "score": "スコア", "correction": "訂正:", "pronunciation": "発音:", "tip": "ヒント:", "err_char": "制限: {} 文字。", "err_audio": "よく聞こえませんでした。", "limit_reached": "🔒 制限到達。", "repeat": "処理済み。", "desc_free": "FREE ($0): 5回/日", "desc_standard": "STANDARD ($1): 20回/日", "desc_pro": "PRO ($5): 100回/日", "welcome_title": "ようこそ, {}!", "welcome_ask": "どの言語を練習しますか？", "btn_continue": "続ける 👉", "diag_title": "🎯 ほぼ完了！", "diag_prompt": "**{}** で回答: なぜ学びたいですか？", "diag_analyzing": "評価中...", "diag_success": "素晴らしい！ {} レベル: {}", "change_lang": "🔄 言語を変更", "lang_name": {"Inglés": "英語", "Español": "スペイン語", "Francés": "フランス語", "Alemán": "ドイツ語", "Italiano": "イタリア語", "Portugués": "ポルトガル語", "Mandarín": "中国語", "Japonés": "日本語", "Coreano": "韓国語", "Ruso": "ロシア語"}, "choose_mode": "モードを選択:", "mode_fund": "🧱 基礎", "mode_fund_desc": "遊びながら最初の単語を学び、聞く。", "lesson_txt": "レベル", "btn_gen_lesson": "📚 チャレンジを開始", "btn_next": "📚 次へ ⏭️", "mode_real": "🎭 リアルシナリオ", "mode_real_desc": "日常のシナリオで話して恐怖をなくす。", "prep_lesson": "インタラクティブなチャレンジを生成中...", "lesson_passed": "🎉 クリア！'次へ'をクリック。", "role_passed": "🎉 素晴らしい！'次へ'をクリック。", "topics": ["挨拶", "代名詞", "動詞", "数字", "色", "食べ物", "家族", "日付", "服", "体", "動物", "職業", "天気", "家", "感情", "動作", "交通", "都市", "時間", "日常"], "super_power_title": "⚡ フリートレーニング", "super_power_desc": "マイクを押して任意のフレーズを言うと、AIが発音を修正します。", "tc_check": "利用規約とプライバシーポリシーに同意します", "tc_error": "⚠️ 続行するには利用規約に同意する必要があります。", "tc_title": "📜 利用規約を表示", "tc_text": "**Voxis AI - 利用規約 (プレースホルダー)**<br>1. 登録により、セッションCookieの使用に同意したことになります。<br>2. 音声データはGoogle AIサーバーを介して安全に処理されます。<br>3. 割り当て制限が適用されます。<br>*(最終的なドキュメントはWeb公開時に追加されます)。*\",", "otp_sent_msg": "📧 **{}** にコードを送信しました", "otp_label": "認証コード:", "btn_verify": "確認", "btn_cancel": "キャンセル", "otp_error": "❌ コードが間違っています.", "email_error": "❌ メールエラー.", "email_subject": "Voxis AI アクセスコード", "email_body": "あなたのコードは: {}"},
+    "Coreano": {"native_lang": "🗣️ 모국어:", "record_btn": "🎙️ 녹음 (최대 {}초)", "login_sub": "로그인하세요.", "email": "이메일:", "names": "이름:", "lastnames": "성:", "wa": "WhatsApp:", "plan_select": "플랜:", "btn_login": "로그인 / 가입", "greeting": "안녕하세요", "plan_label": "플랜", "trainings": "훈련", "logout": "로그아웃", "tab_train": "🏋️ 훈련", "tab_upgrade": "⭐ 업그레이드", "tab_agent": "🤖 AI 경로", "up_title": "잠재력 발휘 🚀", "up_sub": "(곧 제공)", "learn_prompt": "🌐 언어:", "record": "말하기:", "write": "또는 입력:", "btn_send": "보내기 🚀", "listening": "듣는 중...", "analyzing": "분석 중...", "score": "점수", "correction": "교정:", "pronunciation": "발음:", "tip": "팁:", "err_char": "제한: {} 자.", "err_audio": "잘 들리지 않습니다.", "limit_reached": "🔒 한도 초과.", "repeat": "처리됨.", "desc_free": "FREE 플랜 ($0): 5번/일", "desc_standard": "STANDARD 플랜 ($1): 20번/일", "desc_pro": "PRO 플랜 ($5): 100번/일", "welcome_title": "환영합니다, {}!", "welcome_ask": "어떤 언어를 연습할까요?", "btn_continue": "계속 👉", "diag_title": "🎯 거의 완료!", "diag_prompt": "**{}**로 대답: 왜 배우고 싶나요?", "diag_analyzing": "평가 중...", "diag_success": "멋져요! {} 레벨: {}", "change_lang": "🔄 언어 변경", "lang_name": {"Inglés": "영어", "Español": "스페인어", "Francés": "프랑스어", "Alemán": "독일어", "Italiano": "이탈리아어", "Portugués": "포르투갈어", "Mandarín": "중국어", "Japonés": "일본어", "Coreano": "한국어", "Ruso": "러시아어"}, "choose_mode": "모드 선택:", "mode_fund": "🧱 기초", "mode_fund_desc": "첫 단어를 놀면서 배우고 들어보세요.", "lesson_txt": "레벨", "btn_gen_lesson": "📚 오늘의 도전 시작", "btn_next": "📚 다음 ⏭️", "mode_real": "🎭 실제 상황", "mode_real_desc": "실제 상황에서 말하기의 두려움을 없애세요.", "prep_lesson": "대화형 도전 생성 중...", "lesson_passed": "🎉 통과! '다음'을 클릭하여 진행하세요.", "role_passed": "🎉 훌륭합니다! '다음'을 클릭하세요.", "topics": ["인사말", "대명사", "동사", "숫자", "색상", "음식", "가족", "날짜", "옷", "신체", "동물", "직업", "날씨", "집", "감정", "동작", "교통", "도시", "시간", "일상"], "super_power_title": "⚡ 자유 연습", "super_power_desc": "마이크를 누르고 아무 문장이나 말하면 AI가 발음과 문법을 즉시 교정해 줍니다.", "tc_check": "이용 약관 및 개인 정보 보호 정책에 동의합니다", "tc_error": "⚠️ 계속하려면 이용 약관에 동의해야 합니다.", "tc_title": "📜 이용 약관 보기", "tc_text": "**Voxis AI - 약관 (자리 표시자)**<br>1. 등록하면 세션 쿠키 사용에 동의하게 됩니다.<br>2. 오디오 데이터는 Google AI 서버를 통해 안전하게 처리됩니다.<br>3. 할당량 제한이 적용됩니다.<br>*(최종 문서는 웹 출시에 추가됩니다).*\",", "otp_sent_msg": "📧 **{}** 로 코드를 보냈습니다", "otp_label": "인증 코드:", "btn_verify": "확인", "btn_cancel": "취소", "otp_error": "❌ 잘못된 코드입니다.", "email_error": "❌ 이메일 오류.", "email_subject": "Voxis AI 액세스 코드", "email_body": "코드는 다음과 같습니다: {}"},
+    "Ruso": {"native_lang": "🗣️ Родной язык:", "record_btn": "🎙️ Запись (Макс. {}с)", "login_sub": "Войдите.", "email": "Почта:", "names": "Имя:", "lastnames": "Фамилия:", "wa": "WhatsApp:", "plan_select": "План:", "btn_login": "Вход / Регистрация", "greeting": "Привет", "plan_label": "План", "trainings": "Тренировки", "logout": "Выйти", "tab_train": "🏋️ Тренировка", "tab_upgrade": "⭐ Улучшить", "tab_agent": "🤖 Путь ИИ", "up_title": "Раскройте потенциал 🚀", "up_sub": "(Скоро)", "learn_prompt": "🌐 Язык:", "record": "Говорить на", "write": "Или введите", "btn_send": "Отправить 🚀", "listening": "Слушаю...", "analyzing": "Анализ...", "score": "Оценка", "correction": "Исправление:", "pronunciation": "Произношение:", "tip": "Совет:", "err_char": "Лимит: {} симв.", "err_audio": "Вас плохо слышно.", "limit_reached": "🔒 Лимит достигнут.", "repeat": "Обработано.", "desc_free": "FREE ($0): 5 фраз/день", "desc_standard": "STANDARD ($1): 20 фраз/день", "desc_pro": "PRO ($5): 100 фраз/день", "welcome_title": "Добро пожаловать, {}!", "welcome_ask": "Какой язык практикуем?", "btn_continue": "Продолжить 👉", "diag_title": "🎯 Почти готово!", "diag_prompt": "Ответьте на **{}**: Почему вы хотите учить?", "diag_analyzing": "Оценка...", "diag_success": "Отлично! Уровень в {} : {}", "change_lang": "🔄 Сменить язык", "lang_name": {"Inglés": "Английский", "Español": "Испанский", "Francés": "Французский", "Alemán": "Немецкий", "Italiano": "Итальянский", "Portugués": "Португальский", "Mandarín": "Китайский", "Japonés": "Японский", "Coreano": "Корейский", "Ruso": "Русский"}, "choose_mode": "Выберите режим:", "mode_fund": "🧱 Основы", "mode_fund_desc": "Играйте, учите и слушайте свои первые слова.", "lesson_txt": "Уровень", "btn_gen_lesson": "📚 Начать испытание", "btn_next": "📚 Далее ⏭️", "mode_real": "🎭 Реальные сценарии", "mode_real_desc": "Говорите без страха в повседневных сценариях.", "prep_lesson": "Генерация интерактивного испытания...", "lesson_passed": "🎉 Пройдено! Нажмите 'Далее' для продолжения.", "role_passed": "🎉 Отличная работа! Нажмите 'Далее'.", "topics": ["Приветствия", "Местоимения", "Глаголы", "Числа", "Цвета", "Еда", "Семья", "Дни", "Одежда", "Тело", "Животные", "Профессии", "Погода", "Дом", "Эмоции", "Действия", "Транспорт", "Город", "Время", "Рутина"], "super_power_title": "⚡ Свободная практика", "super_power_desc": "Нажмите на микрофон, скажите любую фразу, и ИИ мгновенно исправит ваше произношение.", "tc_check": "Я принимаю Условия и Политику конфиденциальности", "tc_error": "⚠️ Вы должны принять условия, чтобы продолжить.", "tc_title": "📜 Посмотреть Условия", "tc_text": "**Voxis AI - Условия (Заполнитель)**<br>1. Регистрируясь, вы принимаете файлы cookie сеанса.<br>2. Аудио обрабатывается через серверы Google AI.<br>3. Квоты могут меняться.<br>*(Финальный документ при запуске веб-версии).*\",", "otp_sent_msg": "📧 Код отправлен на **{}**", "otp_label": "Код подтверждения:", "btn_verify": "Подтвердить", "btn_cancel": "Отмена", "otp_error": "❌ Неверный код.", "email_error": "❌ Ошибка отправки.", "email_subject": "Код доступа Voxis AI", "email_body": "Ваш код: {}"}
+}
+
 IDIOMAS_APRENDER = {
-    "Inglés": {"stt": "en-US", "tts": "en"},
-    "Español": {"stt": "es-ES", "tts": "es"},
-    "Francés": {"stt": "fr-FR", "tts": "fr"},
-    "Alemán": {"stt": "de-DE", "tts": "de"},
-    "Italiano": {"stt": "it-IT", "tts": "it"},
-    "Portugués": {"stt": "pt-BR", "tts": "pt"},
-    "Mandarín": {"stt": "zh-CN", "tts": "zh-CN"},
-    "Japonés": {"stt": "ja-JP", "tts": "ja"},
-    "Coreano": {"stt": "ko-KR", "tts": "ko"},
+    "Inglés": {"stt": "en-US", "tts": "en"}, "Español": {"stt": "es-ES", "tts": "es"}, "Francés": {"stt": "fr-FR", "tts": "fr"},
+    "Alemán": {"stt": "de-DE", "tts": "de"}, "Italiano": {"stt": "it-IT", "tts": "it"}, "Portugués": {"stt": "pt-BR", "tts": "pt"},
+    "Mandarín": {"stt": "zh-CN", "tts": "zh-CN"}, "Japonés": {"stt": "ja-JP", "tts": "ja"}, "Coreano": {"stt": "ko-KR", "tts": "ko"},
     "Ruso": {"stt": "ru-RU", "tts": "ru"}
 }
 
-UI_TEXT = {
-    "Español": {
-        "login_sub": "Identifícate para comenzar tu entrenamiento.",
-        "email": "Correo Electrónico:",
-        "names": "Nombres:",
-        "lastnames": "Apellidos:",
-        "wa": "WhatsApp (Obligatorio código de país):",
-        "plan_select": "Elige tu plan inicial:",
-        "btn_login": "Entrar / Registrarse",
-        "greeting": "Hola",
-        "plan": "Plan actual",
-        "trainings": "Entrenamientos",
-        "logout": "Cerrar Sesión",
-        "tab_train": "🏋️ Entrenamiento",
-        "tab_upgrade": "⭐ Mejorar Plan",
-        "upgrade_title": "Desbloquea todo tu potencial 🚀",
-        "upgrade_sub": "(Pronto: Enlace directo de pago con Stripe / Tarjetas)",
-        "learn_prompt": "🌐 Idioma a entrenar:",
-        "record": "Graba tu frase en",
-        "write": "O escribe tu frase en",
-        "listening": "Escuchando...",
-        "analyzing": "Analizando tu nivel de",
-        "score": "Puntaje",
-        "correction": "Corrección:",
-        "pronunciation": "Pronunciación:",
-        "tip": "Tip:",
-        "err_char": "Límite de {} caracteres máximo.",
-        "err_audio": "Límite de {} segundos máximo.",
-        "limit_reached": "🔒 Límite de frases alcanzado por hoy. Ve a la pestaña 'Mejorar Plan' para continuar.",
-        "repeat": "Ya procesamos esta frase. Escribe o graba una diferente para continuar.",
-        "desc_gratis": "Plan GRATIS ($0): 5 frases al día, audios de 5s, 200 caracteres.",
-        "desc_starter": "Plan STARTER ($1/mes): 20 frases al día, audios de 10s, 400 caracteres.",
-        "desc_promax": "Plan PRO MAX ($5/mes): 100 frases al día, audios de 10s, 400 caracteres. (Uso personal)"
-    },
-    "Inglés": {
-        "login_sub": "Log in to start your training.",
-        "email": "Email:",
-        "names": "First Name:",
-        "lastnames": "Last Name:",
-        "wa": "WhatsApp (Country code required):",
-        "plan_select": "Choose your starting plan:",
-        "btn_login": "Login / Register",
-        "greeting": "Hello",
-        "plan": "Current Plan",
-        "trainings": "Trainings",
-        "logout": "Log Out",
-        "tab_train": "🏋️ Training",
-        "tab_upgrade": "⭐ Upgrade Plan",
-        "upgrade_title": "Unlock your full potential 🚀",
-        "upgrade_sub": "(Soon: Direct payment link via Stripe / Credit Cards)",
-        "learn_prompt": "🌐 Language to train:",
-        "record": "Record your phrase in",
-        "write": "Or type your phrase in",
-        "listening": "Listening...",
-        "analyzing": "Analyzing your level of",
-        "score": "Score",
-        "correction": "Correction:",
-        "pronunciation": "Pronunciation:",
-        "tip": "Tip:",
-        "err_char": "Maximum {} characters limit.",
-        "err_audio": "Maximum {} seconds limit.",
-        "limit_reached": "🔒 Phrase limit reached for today. Go to the 'Upgrade Plan' tab to continue.",
-        "repeat": "We already processed this phrase. Type or record a different one.",
-        "desc_gratis": "FREE Plan ($0): 5 phrases/day, 5s audio, 200 characters.",
-        "desc_starter": "STARTER Plan ($1/mo): 20 phrases/day, 10s audio, 400 characters.",
-        "desc_promax": "PRO MAX Plan ($5/mo): 100 phrases/day, 10s audio, 400 characters. (Personal use)"
-    },
-    "Francés": {
-        "login_sub": "Connectez-vous pour commencer.",
-        "email": "E-mail:",
-        "names": "Prénom:",
-        "lastnames": "Nom de famille:",
-        "wa": "WhatsApp (Indicatif requis):",
-        "plan_select": "Choisissez votre forfait :",
-        "btn_login": "Se connecter / S'inscrire",
-        "greeting": "Bonjour",
-        "plan": "Forfait actuel",
-        "trainings": "Entraînements",
-        "logout": "Se déconnecter",
-        "tab_train": "🏋️ Entraînement",
-        "tab_upgrade": "⭐ Améliorer le forfait",
-        "upgrade_title": "Débloquez tout votre potentiel 🚀",
-        "upgrade_sub": "(Bientôt : Lien de paiement direct via Stripe / Cartes)",
-        "learn_prompt": "🌐 Langue à pratiquer:",
-        "record": "Enregistrez votre phrase en",
-        "write": "Ou écrivez votre phrase en",
-        "listening": "Écoute en cours...",
-        "analyzing": "Analyse de votre niveau de",
-        "score": "Score",
-        "correction": "Correction:",
-        "pronunciation": "Prononciation:",
-        "tip": "Astuce:",
-        "err_char": "Limite de {} caractères maximum.",
-        "err_audio": "Limite de {} secondes maximum.",
-        "limit_reached": "🔒 Limite de phrases atteinte. Allez à l'onglet 'Améliorer le forfait'.",
-        "repeat": "Nous avons déjà traité cette phrase. Essayez-en une autre.",
-        "desc_gratis": "GRATUIT (0$) : 5 phrases/jour, audio 5s, 200 caractères.",
-        "desc_starter": "STARTER (1$/mois) : 20 phrases/jour, audio 10s, 400 caractères.",
-        "desc_promax": "PRO MAX (5$/mois) : 100 phrases/jour, audio 10s, 400 caractères. (Usage personnel)"
-    },
-    "Alemán": {
-        "login_sub": "Melden Sie sich an, um zu beginnen.",
-        "email": "E-Mail:",
-        "names": "Vorname:",
-        "lastnames": "Nachname:",
-        "wa": "WhatsApp (Ländercode erforderlich):",
-        "plan_select": "Wählen Sie Ihren Plan:",
-        "btn_login": "Anmelden / Registrieren",
-        "greeting": "Hallo",
-        "plan": "Aktueller Plan",
-        "trainings": "Trainings",
-        "logout": "Abmelden",
-        "tab_train": "🏋️ Training",
-        "tab_upgrade": "⭐ Plan aktualisieren",
-        "upgrade_title": "Schalten Sie Ihr volles Potenzial frei 🚀",
-        "upgrade_sub": "(Bald: Direkter Zahlungslink über Stripe / Kreditkarten)",
-        "learn_prompt": "🌐 Zu übende Sprache:",
-        "record": "Sprechen Sie Ihren Satz auf",
-        "write": "Oder schreiben Sie Ihren Satz auf",
-        "listening": "Höre zu...",
-        "analyzing": "Analysiere dein Niveau in",
-        "score": "Punktzahl",
-        "correction": "Korrektur:",
-        "pronunciation": "Aussprache:",
-        "tip": "Tipp:",
-        "err_char": "Maximal {} Zeichen Limit.",
-        "err_audio": "Maximal {} Sekunden Limit.",
-        "limit_reached": "🔒 Satzlimit erreicht. Gehen Sie zum Tab 'Plan aktualisieren'.",
-        "repeat": "Satz bereits verarbeitet. Versuchen Sie einen anderen.",
-        "desc_gratis": "GRATIS ($0): 5 Sätze/Tag, 5s Audio, 200 Zeichen.",
-        "desc_starter": "STARTER ($1/Monat): 20 Sätze/Tag, 10s Audio, 400 Zeichen.",
-        "desc_promax": "PRO MAX ($5/Monat): 100 Sätze/Tag, 10s Audio, 400 Zeichen. (Privatnutzung)"
-    },
-    "Italiano": {
-        "login_sub": "Accedi per iniziare.",
-        "email": "Email:",
-        "names": "Nome:",
-        "lastnames": "Cognome:",
-        "wa": "WhatsApp (Prefisso obbligatorio):",
-        "plan_select": "Scegli il tuo piano:",
-        "btn_login": "Accedi / Registrati",
-        "greeting": "Ciao",
-        "plan": "Piano attuale",
-        "trainings": "Allenamenti",
-        "logout": "Esci",
-        "tab_train": "🏋️ Allenamento",
-        "tab_upgrade": "⭐ Migliora Piano",
-        "upgrade_title": "Sblocca tutto il tuo potenziale 🚀",
-        "upgrade_sub": "(Presto: Link di pagamento diretto tramite Stripe / Carte)",
-        "learn_prompt": "🌐 Lingua da allenare:",
-        "record": "Registra la tua frase in",
-        "write": "O scrivi la tua frase in",
-        "listening": "In ascolto...",
-        "analyzing": "Analizzando il tuo livello di",
-        "score": "Punteggio",
-        "correction": "Correzione:",
-        "pronunciation": "Pronuncia:",
-        "tip": "Suggerimento:",
-        "err_char": "Limite massimo di {} caratteri.",
-        "err_audio": "Limite massimo di {} secondi.",
-        "limit_reached": "🔒 Limite di frasi raggiunto. Vai alla scheda 'Migliora Piano'.",
-        "repeat": "Frase già elaborata. Provane un'altra.",
-        "desc_gratis": "GRATIS ($0): 5 frasi/giorno, audio 5s, 200 caratteri.",
-        "desc_starter": "STARTER ($1/mese): 20 frasi/giorno, audio 10s, 400 caratteri.",
-        "desc_promax": "PRO MAX ($5/mese): 100 frasi/giorno, audio 10s, 400 caratteri. (Uso personale)"
-    },
-    "Portugués": {
-        "login_sub": "Faça login para começar.",
-        "email": "E-mail:",
-        "names": "Nomes:",
-        "lastnames": "Sobrenomes:",
-        "wa": "WhatsApp (Código do país obrigatório):",
-        "plan_select": "Escolha seu plano:",
-        "btn_login": "Entrar / Registrar",
-        "greeting": "Olá",
-        "plan": "Plano atual",
-        "trainings": "Treinos",
-        "logout": "Sair",
-        "tab_train": "🏋️ Treinamento",
-        "tab_upgrade": "⭐ Melhorar Plano",
-        "upgrade_title": "Desbloqueie todo o seu potencial 🚀",
-        "upgrade_sub": "(Em breve: Link de pagamento direto via Stripe / Cartões)",
-        "learn_prompt": "🌐 Idioma para treinar:",
-        "record": "Grave sua frase em",
-        "write": "Ou digite sua frase em",
-        "listening": "Ouvindo...",
-        "analyzing": "Analisando seu nível de",
-        "score": "Pontuação",
-        "correction": "Correção:",
-        "pronunciation": "Pronúncia:",
-        "tip": "Dica:",
-        "err_char": "Limite máximo de {} caracteres.",
-        "err_audio": "Limite máximo de {} segundos.",
-        "limit_reached": "🔒 Limite de frases atingido. Vá para a aba 'Melhorar Plano'.",
-        "repeat": "Já processamos esta frase. Tente uma diferente.",
-        "desc_gratis": "GRÁTIS ($0): 5 frases/dia, áudio 5s, 200 caracteres.",
-        "desc_starter": "STARTER ($1/mês): 20 frases/dia, áudio 10s, 400 caracteres.",
-        "desc_promax": "PRO MAX ($5/mês): 100 frases/dia, áudio 10s, 400 caracteres. (Uso pessoal)"
-    },
-    "Mandarín": {
-        "login_sub": "登录以开始。",
-        "email": "电子邮件：",
-        "names": "名字：",
-        "lastnames": "姓氏：",
-        "wa": "WhatsApp（必须输入国家代码）：",
-        "plan_select": "选择您的计划：",
-        "btn_login": "登录 / 注册",
-        "greeting": "你好",
-        "plan": "当前计划",
-        "trainings": "训练",
-        "logout": "退出",
-        "tab_train": "🏋️ 训练",
-        "tab_upgrade": "⭐ 升级计划",
-        "upgrade_title": "解锁您的全部潜力 🚀",
-        "upgrade_sub": "(即将推出：通过 Stripe / 信用卡的直接付款链接)",
-        "learn_prompt": "🌐 要训练的语言：",
-        "record": "录制您的句子用",
-        "write": "或输入您的句子用",
-        "listening": "正在倾听...",
-        "analyzing": "正在分析你的水平",
-        "score": "分数",
-        "correction": "纠正：",
-        "pronunciation": "发音：",
-        "tip": "提示：",
-        "err_char": "最多 {} 个字符限制。",
-        "err_audio": "最多 {} 秒限制。",
-        "limit_reached": "🔒 达到每日句子限制。请转到“升级计划”选项卡。",
-        "repeat": "我们已经处理过这句话。请尝试另一句。",
-        "desc_gratis": "免费 ($0)：每天 5 个句子，5 秒音频，200 个字符。",
-        "desc_starter": "STARTER ($1/月)：每天 20 个句子，10 秒音频，400 个字符。",
-        "desc_promax": "PRO MAX ($5/月)：每天 100 个句子，10 秒音频，400 个字符。（个人使用）"
-    },
-    "Japonés": {
-        "login_sub": "ログインして始めましょう。",
-        "email": "メールアドレス：",
-        "names": "名前：",
-        "lastnames": "苗字：",
-        "wa": "WhatsApp（国番号必須）：",
-        "plan_select": "プランを選択：",
-        "btn_login": "ログイン / 登録",
-        "greeting": "こんにちは",
-        "plan": "現在のプラン",
-        "trainings": "トレーニング",
-        "logout": "ログアウト",
-        "tab_train": "🏋️ トレーニング",
-        "tab_upgrade": "⭐ プランをアップグレード",
-        "upgrade_title": "あなたの可能性を最大限に引き出す 🚀",
-        "upgrade_sub": "(近日公開: Stripe / クレジットカードによる直接支払いリンク)",
-        "learn_prompt": "🌐 練習する言語：",
-        "record": "フレーズを録音する（言語：",
-        "write": "またはフレーズを入力する（言語：",
-        "listening": "聞いています...",
-        "analyzing": "レベルを分析中：",
-        "score": "スコア",
-        "correction": "訂正：",
-        "pronunciation": "発音：",
-        "tip": "ヒント：",
-        "err_char": "最大 {} 文字の制限です。",
-        "err_audio": "最大 {} 秒の制限です。",
-        "limit_reached": "🔒 フレーズの制限に達しました。「プランをアップグレード」タブへ移動してください。",
-        "repeat": "このフレーズは既に処理されました。別のフレーズを試してください。",
-        "desc_gratis": "無料 ($0): 1日5フレーズ、音声5秒、200文字。",
-        "desc_starter": "STARTER ($1/月): 1日20フレーズ、音声10秒、400文字。",
-        "desc_promax": "PRO MAX ($5/月): 1日100フレーズ、音声10秒、400文字。（個人利用）"
-    },
-    "Coreano": {
-        "login_sub": "로그인하여 시작하세요.",
-        "email": "이메일:",
-        "names": "이름:",
-        "lastnames": "성:",
-        "wa": "WhatsApp(국가 코드 필수):",
-        "plan_select": "플랜 선택:",
-        "btn_login": "로그인 / 등록",
-        "greeting": "안녕하세요",
-        "plan": "현재 플랜",
-        "trainings": "훈련",
-        "logout": "로그아웃",
-        "tab_train": "🏋️ 훈련",
-        "tab_upgrade": "⭐ 플랜 업그레이드",
-        "upgrade_title": "잠재력을 최대한 발휘하세요 🚀",
-        "upgrade_sub": "(곧 출시: Stripe / 신용카드를 통한 직접 결제 링크)",
-        "learn_prompt": "🌐 훈련할 언어:",
-        "record": "다음 언어로 문장 녹음:",
-        "write": "또는 다음 언어로 문장 입력:",
-        "listening": "듣는 중...",
-        "analyzing": "레벨 분석 중:",
-        "score": "점수",
-        "correction": "교정:",
-        "pronunciation": "발음:",
-        "tip": "팁:",
-        "err_char": "최대 {}자 제한입니다.",
-        "err_audio": "최대 {}초 제한입니다.",
-        "limit_reached": "🔒 오늘의 문장 한도에 도달했습니다. '플랜 업그레이드' 탭으로 이동하세요.",
-        "repeat": "이미 처리된 문장입니다. 다른 문장을 시도해 보세요.",
-        "desc_gratis": "무료 ($0): 하루 5문장, 오디오 5초, 200자.",
-        "desc_starter": "STARTER ($1/월): 하루 20문장, 오디오 10초, 400자.",
-        "desc_promax": "PRO MAX ($5/월): 하루 100문장, 오디오 10초, 400자. (개인용)"
-    },
-    "Ruso": {
-        "login_sub": "Войдите, чтобы начать.",
-        "email": "Электронная почта:",
-        "names": "Имя:",
-        "lastnames": "Фамилия:",
-        "wa": "WhatsApp (Обязателен код страны):",
-        "plan_select": "Выберите план:",
-        "btn_login": "Войти / Зарегистрироваться",
-        "greeting": "Привет",
-        "plan": "Текущий план",
-        "trainings": "Тренировки",
-        "logout": "Выйти",
-        "tab_train": "🏋️ Тренировка",
-        "tab_upgrade": "⭐ Улучшить план",
-        "upgrade_title": "Раскройте свой потенциал 🚀",
-        "upgrade_sub": "(Скоро: Прямая ссылка на оплату через Stripe / Карты)",
-        "learn_prompt": "🌐 Язык для тренировки:",
-        "record": "Запишите вашу фразу на",
-        "write": "Или напишите вашу фразу на",
-        "listening": "Слушаю...",
-        "analyzing": "Анализирую ваш уровень",
-        "score": "Оценка",
-        "correction": "Исправление:",
-        "pronunciation": "Произношение:",
-        "tip": "Совет:",
-        "err_char": "Ограничение в {} символов максимум.",
-        "err_audio": "Ограничение в {} секунд максимум.",
-        "limit_reached": "🔒 Достигнут лимит фраз. Перейдите на вкладку «Улучшить план».",
-        "repeat": "Мы уже обработали эту фразу. Попробуйте другую.",
-        "desc_gratis": "БЕСПЛАТНО ($0): 5 фраз/день, аудио 5с, 200 символов.",
-        "desc_starter": "STARTER ($1/мес): 20 фраз/день, аудио 10с, 400 символов.",
-        "desc_promax": "PRO MAX ($5/мес): 100 фраз/день, аудио 10с, 400 символов. (Личное)"
-    }
-}
+# --- 4. INTERFAZ Y LÓGICA ---
 
-# Configuración del Idioma Nativo Global
-idiomas_disponibles = list(UI_TEXT.keys())
-idioma_nativo = st.selectbox("🗣️ Native Language / Idioma Nativo:", idiomas_disponibles, index=0)
-t = UI_TEXT[idioma_nativo] 
+if "ui_lang" not in st.session_state:
+    st.session_state.ui_lang = "Español"
 
-if "ultima_frase" not in st.session_state:
-    st.session_state.ultima_frase = ""
+t_temp = UI_TEXT[st.session_state.ui_lang]
+label_nativo = t_temp["native_lang"]
 
-# --- 3. LÓGICA DE BASE DE DATOS Y ANTI-FRAUDE ---
-def verificar_reloj_medianoche(usuario_data):
-    hoy = date.today().strftime("%Y-%m-%d")
-    if usuario_data.get("ultima_fecha_uso") != hoy:
-        usuario_data["frases_usadas_hoy"] = 0
-        usuario_data["ultima_fecha_uso"] = hoy
-        db.collection("usuarios").document(usuario_data["correo"]).set(usuario_data, merge=True)
-    return usuario_data
+opciones_nativo_traducidas = [t_temp["lang_name"][lang] for lang in UI_TEXT.keys()]
+idx_lang = list(UI_TEXT.keys()).index(st.session_state.ui_lang)
 
-def iniciar_sesion(correo, nombres, apellidos, whatsapp, plan_elegido):
-    usuarios_ref = db.collection("usuarios")
-    query_wa = usuarios_ref.where(filter=FieldFilter("whatsapp", "==", whatsapp)).stream()
-    
-    for doc in query_wa:
-        if doc.id != correo:
-            return None, "Error: WhatsApp vinculado a otra cuenta."
+seleccion_nativo_traducida = st.selectbox(label_nativo, opciones_nativo_traducidas, index=idx_lang, key="lang_selector")
+
+seleccion_nativo = st.session_state.ui_lang
+for original, traducido in t_temp["lang_name"].items():
+    if traducido == seleccion_nativo_traducida and original in UI_TEXT.keys():
+        seleccion_nativo = original
+        break
+
+if seleccion_nativo != st.session_state.ui_lang:
+    st.session_state.ui_lang = seleccion_nativo
+    st.rerun()
+
+idioma_nativo = st.session_state.ui_lang
+t = UI_TEXT[idioma_nativo]
+
+for key in ["ultima_frase", "ultimo_audio", "audio_diagnostico", "usuario_db", "idioma_activo", "otp_sent", "otp_code", "temp_data"]:
+    if key not in st.session_state:
+        st.session_state[key] = None if "audio" in key or key == "usuario_db" or key == "idioma_activo" else ("" if "ultima" in key or key=="otp_code" else (False if key=="otp_sent" else {}))
+
+if "last_native_lang" not in st.session_state:
+    st.session_state.last_native_lang = idioma_nativo
+elif st.session_state.last_native_lang != idioma_nativo:
+    for key in list(st.session_state.keys()):
+        if key.startswith("reto_") or key.startswith("audio_reto_"):
+            st.session_state[key] = ""
+    st.session_state.last_native_lang = idioma_nativo
+
+if st.session_state.usuario_db is None and "user_session" in st.query_params:
+    correo_recuperado = st.query_params["user_session"]
+    doc_recuperado = db.collection("usuarios").document(correo_recuperado).get()
+    if doc_recuperado.exists:
+        st.session_state.usuario_db = doc_recuperado.to_dict()
+
+if st.session_state.idioma_activo is None and "lang_session" in st.query_params:
+    st.session_state.idioma_activo = st.query_params["lang_session"]
+
+# --- FUNCIÓN DE ENVÍO DE CORREOS (NUEVA) ---
+def enviar_otp(correo_destino, codigo, dict_idioma):
+    try:
+        remitente = st.secrets["EMAIL_USER"]
+        password = st.secrets["EMAIL_PASS"]
+        msg = MIMEText(dict_idioma["email_body"].format(codigo))
+        msg['Subject'] = dict_idioma["email_subject"]
+        msg['From'] = remitente
+        msg['To'] = correo_destino
+        
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(remitente, password)
+        server.sendmail(remitente, correo_destino, msg.as_string())
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Error enviando correo: {e}")
+        return False
+
+def iniciar_sesion(correo, nombres, apellidos, whatsapp, plan_texto):
+    p_upper = plan_texto.upper()
+    if "FREE" in p_upper: plan_db = "Free"
+    elif "STANDARD" in p_upper: plan_db = "Standard"
+    else: plan_db = "Pro"
 
     doc_ref = db.collection("usuarios").document(correo)
     doc = doc_ref.get()
     
-    if doc.exists: 
-        datos = verificar_reloj_medianoche(doc.to_dict())
-        return datos, f"{t['greeting']} / Welcome."
-    else:
-        # LÓGICA CORREGIDA: Busca el precio exacto en cualquier idioma
-        if "$0" in plan_elegido or "0$" in plan_elegido:
-            plan_final = "GRATIS"
-        elif "$1" in plan_elegido or "1$" in plan_elegido:
-            plan_final = "STARTER"
-        else:
-            plan_final = "PRO MAX"
-
-        nuevo_usuario = {
-            "correo": correo,
-            "nombres": nombres,
-            "apellidos": apellidos,
-            "whatsapp": whatsapp,
-            "plan": plan_final,
-            "frases_usadas_hoy": 0,
-            "ultima_fecha_uso": date.today().strftime("%Y-%m-%d")
-        }
+    if doc.exists:
+        hoy = date.today().strftime("%Y-%m-%d")
+        datos = doc.to_dict()
+        if datos.get("plan") != plan_db:
+            datos["plan"] = plan_db
+            doc_ref.update({"plan": plan_db})
             
-        doc_ref.set(nuevo_usuario)
-        return nuevo_usuario, "Cuenta creada / Account created."
+        if datos.get("ultima_fecha_uso") != hoy:
+            datos["frases_usadas_hoy"] = 0
+            datos["ultima_fecha_uso"] = hoy
+            doc_ref.set(datos, merge=True)
+        if "niveles" not in datos:
+            datos["niveles"] = {}
+            doc_ref.update({"niveles": {}})
+        
+        st.query_params["user_session"] = correo 
+        return datos, "Welcome back!"
+    else:
+        nuevo = {
+            "correo": correo, "nombres": nombres, "apellidos": apellidos, "whatsapp": whatsapp, 
+            "plan": plan_db, "frases_usadas_hoy": 0, "ultima_fecha_uso": str(date.today()),
+            "niveles": {} 
+        }
+        doc_ref.set(nuevo)
+        st.query_params["user_session"] = correo 
+        return nuevo, "Account created!"
 
-def registrar_uso(correo):
-    doc_ref = db.collection("usuarios").document(correo)
-    doc_ref.update({"frases_usadas_hoy": firestore.Increment(1)})
-    st.session_state.usuario_db["frases_usadas_hoy"] += 1
-
-# --- 4. LÓGICA DE IA Y PROCESAMIENTO ---
-def procesar_con_gemini(plan, texto, idioma_aprender, idioma_nativo):
-    prompt = f"Actúa como preparador experto de {idioma_aprender}. El estudiante habla nativamente {idioma_nativo}. Analiza y devuelve SOLO JSON en este formato estricto: {{'correccion': '...', 'pronunciacion': '...', 'tips': '...', 'puntuacion': '1-10'}}. En 'pronunciacion', escribe cómo se lee la corrección usando la fonética de un hablante de {idioma_nativo}. En 'tips', explica los errores y da consejos EXCLUSIVAMENTE en {idioma_nativo}. Frase a corregir: {texto}"
-    
-    api_key_actual = API_KEY_FREE
-    modelos = ['gemini-3.1-flash-lite-preview', 'gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-2.0-flash-lite']
-
-    try:
-        client = genai.Client(api_key=api_key_actual)
-    except Exception as e:
-        return {"error": f"Auth Error: {e}"}
-
-    for mod in modelos:
+def procesar_con_gemini(texto, idioma_aprender, idioma_nativo):
+    prompt = f"Actúa como preparador experto de {idioma_aprender}. El estudiante habla nativamente {idioma_nativo}. Analiza la siguiente frase y devuelve SOLO JSON: {{'correccion': 'ESCRIBE AQUÍ SOLAMENTE LA FRASE CORREGIDA EN {idioma_aprender}. NADA EN {idioma_nativo}', 'pronunciacion': '...', 'tips': 'Explica en {idioma_nativo}', 'puntuacion': '1-10'}}. En 'pronunciacion', usa fonética para {idioma_nativo}. Frase a evaluar: '{texto}'"
+    try: client = genai.Client(api_key=API_KEY_FREE)
+    except Exception as e: return {"error": f"Auth Error: {e}"}
+    for mod in ['gemini-3.1-flash-lite-preview', 'gemini-flash-lite-latest', 'gemini-2.0-flash-lite']:
         try:
-            time.sleep(3) 
+            time.sleep(2) 
             response = client.models.generate_content(model=mod, contents=prompt)
             res_text = response.text.replace('```json\n', '').replace('```', '').strip()
             return json.loads(res_text)
-        except Exception as e:
-            continue
-            
-    return {"error": "Servers are currently busy. Please try again."}
+        except Exception: continue
+    return {"error": "Servers busy."}
 
-# --- 5. INTERFAZ GRÁFICA (FRONTEND) ---
-if "usuario_db" not in st.session_state:
-    st.session_state.usuario_db = None
+def evaluar_nivel(texto_diagnostico, idioma_aprender, idioma_nativo):
+    prompt = f"El usuario intenta aprender {idioma_aprender} y su idioma nativo es {idioma_nativo}. Analiza este texto: '{texto_diagnostico}'. REGLA ESTRICTA: Si el texto está escrito en {idioma_nativo} en lugar de {idioma_aprender}, responde 'A1'. Si está escrito en {idioma_aprender}, determina su nivel CEFR (A1, A2, B1, B2, C1, C2). Responde ÚNICAMENTE con el nivel."
+    try:
+        client = genai.Client(api_key=API_KEY_FREE)
+        response = client.models.generate_content(model='gemini-3.1-flash-lite-preview', contents=prompt)
+        return response.text.strip()[:2] 
+    except: return "A1" 
 
+# --- PANTALLA 1: LOGIN Y VERIFICACIÓN OTP ---
 if st.session_state.usuario_db is None:
-    st.image("https://via.placeholder.com/800x200.png?text=Voxis+AI", use_container_width=True)
-    st.title("Voxis AI")
-    st.subheader("Your 24/7 AI Language Trainer")
-    st.write(t["login_sub"])
+    if os.path.exists("logo.png"): st.image("logo.png", width=180)
+    else: st.title("Voxis AI")
+    st.markdown('<p class="slogan-text">Your 24/7 AI Language Trainer</p>', unsafe_allow_html=True)
     
-    with st.form("login_form"):
-        correo = st.text_input(t["email"])
-        nombres = st.text_input(t["names"])
-        apellidos = st.text_input(t["lastnames"])
-        whatsapp = st.text_input(t["wa"], placeholder="+1 555 5555")
+    # 1. PANTALLA DE FORMULARIO INICIAL
+    if not st.session_state.otp_sent:
+        st.write(t["login_sub"])
+        with st.form("login"):
+            correo = st.text_input(t["email"])
+            nombres = st.text_input(t["names"])
+            apellidos = st.text_input(t["lastnames"])
+            whatsapp = st.text_input(t["wa"], placeholder="+1 555")
+            st.write("---")
+            st.write(f"**{t['plan_select']}**")
+            plan_elegido = st.radio("Planes", [t["desc_free"], t["desc_standard"], t["desc_pro"]], label_visibility="collapsed")
+            
+            st.write("---")
+            aceptar_tc = st.checkbox(t["tc_check"])
+            
+            if st.form_submit_button(t["btn_login"]):
+                if not aceptar_tc:
+                    st.error(t["tc_error"])
+                elif correo and nombres:
+                    # VERIFICACIÓN DE MODO DIOS (Admin entra sin PIN)
+                    correo_admin = st.secrets.get("ADMIN_EMAIL", "")
+                    if correo == correo_admin and correo_admin != "":
+                        datos, msg = iniciar_sesion(correo, nombres, apellidos, whatsapp, plan_elegido)
+                        st.session_state.usuario_db = datos
+                        st.rerun()
+                    else:
+                        # Usuario normal: Generar y Enviar PIN
+                        con_spinner = st.spinner("Enviando código de seguridad..." if idioma_nativo == "Español" else "Sending security code...")
+                        with con_spinner:
+                            codigo_generado = str(random.randint(1000, 9999))
+                            envio_exitoso = enviar_otp(correo, codigo_generado, t)
+                            
+                            if envio_exitoso:
+                                st.session_state.otp_sent = True
+                                st.session_state.otp_code = codigo_generado
+                                st.session_state.temp_data = {
+                                    "correo": correo, "nombres": nombres, 
+                                    "apellidos": apellidos, "whatsapp": whatsapp, "plan": plan_elegido
+                                }
+                                st.rerun()
+                            else:
+                                st.error(t["email_error"])
+                else: st.error("⚠️ Fill required fields.")
+                
+        with st.expander(t["tc_title"]):
+            st.markdown(f'<div class="legal-text">{t["tc_text"]}</div>', unsafe_allow_html=True)
+            
+    # 2. PANTALLA DE INGRESO DEL PIN (OTP)
+    else:
+        st.info(t["otp_sent_msg"].format(st.session_state.temp_data["correo"]))
         
-        st.write("---")
-        st.write(f"**{t['plan_select']}**")
-        plan_elegido = st.radio(
-            "Planes",
-            options=[t['desc_gratis'], t['desc_starter'], t['desc_promax']],
-            label_visibility="collapsed"
-        )
-        st.write("---")
-        
-        submit = st.form_submit_button(t["btn_login"])
-        
-        if submit and correo and whatsapp:
-            whatsapp_limpio = whatsapp.replace(" ", "").replace("-", "").strip()
-            if not whatsapp_limpio.startswith("+"):
-                st.error("⚠️ Format error. Include '+' and country code.")
-            else:
-                datos, mensaje = iniciar_sesion(correo, nombres, apellidos, whatsapp_limpio, plan_elegido)
-                if datos:
+        with st.form("otp_form"):
+            codigo_ingresado = st.text_input(t["otp_label"], max_chars=4)
+            col1, col2 = st.columns(2)
+            
+            submit_verificar = col1.form_submit_button(t["btn_verify"], use_container_width=True)
+            submit_cancelar = col2.form_submit_button(t["btn_cancel"], use_container_width=True)
+            
+            if submit_verificar:
+                if codigo_ingresado == st.session_state.otp_code:
+                    d = st.session_state.temp_data
+                    datos, msg = iniciar_sesion(d["correo"], d["nombres"], d["apellidos"], d["whatsapp"], d["plan"])
                     st.session_state.usuario_db = datos
-                    time.sleep(1)
+                    st.session_state.otp_sent = False 
                     st.rerun()
                 else:
-                    st.error(mensaje)
-else:
-    usuario = st.session_state.usuario_db
-    plan = usuario["plan"]
-    usadas = usuario["frases_usadas_hoy"]
+                    st.error(t["otp_error"])
+            
+            if submit_cancelar:
+                st.session_state.otp_sent = False
+                st.rerun()
+
+# --- PANTALLA 2 & 3: BIENVENIDA Y DIAGNÓSTICO ---
+elif st.session_state.idioma_activo is None:
+    u = st.session_state.usuario_db
+    st.title(t["welcome_title"].format(u["nombres"]))
+    st.write(t["welcome_ask"])
     
-    # PARCHE: Si tu usuario de prueba quedó guardado con el error anterior, esto lo corrige visualmente.
-    if plan not in ["GRATIS", "STARTER", "PRO MAX"]:
-        plan = "GRATIS"
+    nombres_traducidos = [t["lang_name"][lang] for lang in IDIOMAS_APRENDER.keys()]
+    seleccion_traducida = st.selectbox(t["learn_prompt"], nombres_traducidos)
     
-    if plan == "GRATIS":
-        limite_frases = 5
-        limite_segundos = 5
-        limite_caracteres = 200
-    elif plan == "STARTER":
-        limite_frases = 20
-        limite_segundos = 10
-        limite_caracteres = 400
-    else: 
-        limite_frases = 100
-        limite_segundos = 10
-        limite_caracteres = 400
+    idioma_seleccionado = "Inglés" 
+    for original, traducido in t["lang_name"].items():
+        if traducido == seleccion_traducida and original in IDIOMAS_APRENDER.keys():
+            idioma_seleccionado = original
+            break
     
-    st.title(f"{t['greeting']}, {usuario['nombres']} 🎙️")
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.caption(f"{t['plan']}: **{plan}** | Your 24/7 AI Language Trainer")
-    with col2:
-        if st.button(t["logout"], use_container_width=True):
-            st.session_state.usuario_db = None
+    if st.button(t["btn_continue"], use_container_width=True):
+        st.session_state.idioma_activo = idioma_seleccionado
+        st.query_params["lang_session"] = idioma_seleccionado 
+        st.rerun()
+
+elif st.session_state.idioma_activo not in st.session_state.usuario_db.get("niveles", {}):
+    u = st.session_state.usuario_db
+    lang_objetivo_original = st.session_state.idioma_activo
+    lang_objetivo_traducido = t["lang_name"].get(lang_objetivo_original, lang_objetivo_original)
+    
+    st.title(t["diag_title"])
+    st.info(t["diag_prompt"].format(lang_objetivo_traducido))
+    
+    audio_diag = audio_recorder(text=t["record_btn"].format("10"), icon_size="3x", key="diag_mic")
+    texto_diag_manual = st.text_input(t["write"])
+    submit_diag = st.button(t["btn_send"])
+
+    texto_final_diag = ""
+    if submit_diag and texto_diag_manual: texto_final_diag = texto_diag_manual
+    elif audio_diag and audio_diag != st.session_state.audio_diagnostico:
+        st.session_state.audio_diagnostico = audio_diag
+        with st.spinner(t["listening"]):
+            try:
+                r = sr.Recognizer()
+                with sr.AudioFile(io.BytesIO(audio_diag)) as source:
+                    audio = r.record(source, duration=10)
+                    texto_final_diag = r.recognize_google(audio, language=IDIOMAS_APRENDER[lang_objetivo_original]["stt"])
+            except: st.warning(t["err_audio"])
+            
+    if texto_final_diag:
+        with st.spinner(t["diag_analyzing"]):
+            nivel_detectado = evaluar_nivel(texto_final_diag, lang_objetivo_original, idioma_nativo)
+            
+            niveles_actuales = u.get("niveles", {})
+            niveles_actuales[lang_objetivo_original] = nivel_detectado
+            db.collection("usuarios").document(u["correo"]).update({"niveles": niveles_actuales})
+            st.session_state.usuario_db["niveles"] = niveles_actuales
+            
+            st.success(t["diag_success"].format(lang_objetivo_traducido, nivel_detectado))
+            time.sleep(2)
             st.rerun()
 
-    if plan == "PRO MAX":
-        tabs = st.tabs([t["tab_train"]])
-        tab_train = tabs[0]
-        tab_upgrade = None 
+# --- PANTALLA 4: DASHBOARD PRINCIPAL ---
+else:
+    u = st.session_state.usuario_db
+    correo_admin = st.secrets.get("ADMIN_EMAIL", "")
+    es_admin = (u.get("correo") == correo_admin) and correo_admin != ""
+
+    if es_admin:
+        p = "👑 ADMIN PRO"
+        lim_f = 999999
+        lim_s = 30  
+        lim_c = 1000
     else:
-        tabs = st.tabs([t["tab_train"], t["tab_upgrade"]])
-        tab_train = tabs[0]
-        tab_upgrade = tabs[1]
+        p = u.get("plan", "Free")
+        lim_f = 5 if p=="Free" else (20 if p=="Standard" else 100)
+        lim_s = 5 if p=="Free" else 10
+        lim_c = 200 if p=="Free" else 400
 
-    # --- PESTAÑA: MEJORAR PLAN ---
-    if tab_upgrade:
-        with tab_upgrade:
-            st.subheader(t["upgrade_title"])
-            st.write(t["upgrade_sub"])
-            if plan == "GRATIS":
-                st.info(f"✨ **{t['desc_starter']}**")
-                st.success(f"👑 **{t['desc_promax']}**")
-            elif plan == "STARTER":
-                st.success(f"👑 **{t['desc_promax']}**")
+    lang_activo_original = st.session_state.idioma_activo
+    lang_activo_traducido = t["lang_name"].get(lang_activo_original, lang_activo_original)
+    nivel_activo = u.get("niveles", {}).get(lang_activo_original, "A1")
+    
+    col_logo, col_tit = st.columns([1, 6])
+    with col_logo:
+        if os.path.exists("logo.png"): st.image("logo.png", width=60)
+    with col_tit: st.title(f"{t['greeting']}, {u['nombres']}")
+    
+    col1, col2 = st.columns([3, 1])
+    with col1: st.caption(f"{t['plan_label']}: **{p}** | {lang_activo_traducido}: **{nivel_activo}**")
+    with col2:
+        if st.button(t["change_lang"], use_container_width=True):
+            st.session_state.idioma_activo = None
+            if "lang_session" in st.query_params:
+                del st.query_params["lang_session"]
+            st.rerun()
+        if st.button(t["logout"], use_container_width=True):
+            st.session_state.usuario_db = None
+            st.session_state.idioma_activo = None
+            if "user_session" in st.query_params:
+                del st.query_params["user_session"]
+            if "lang_session" in st.query_params:
+                del st.query_params["lang_session"]
+            st.rerun()
 
-    # --- PESTAÑA: ENTRENAMIENTO ---
+    tabs_list = [t["tab_train"], t["tab_agent"]] if ("Pro" in p or es_admin) else [t["tab_train"], t["tab_agent"], t["tab_upgrade"]]
+    tabs = st.tabs(tabs_list)
+    
+    tab_train, tab_agent = tabs[0], tabs[1]
+    tab_upgrade = tabs[2] if ("Pro" not in p and not es_admin) else None
+
     with tab_train:
-        contador_ui = st.empty()
-        contador_ui.info(f"📊 {t['trainings']}: {usadas} / {limite_frases}")
-            
-        idioma_aprender = st.selectbox(t["learn_prompt"], list(IDIOMAS_APRENDER.keys()))
-        lang_stt = IDIOMAS_APRENDER[idioma_aprender]["stt"]
-        lang_tts = IDIOMAS_APRENDER[idioma_aprender]["tts"]
+        st.markdown(f"""
+        <div style="background-color: #FF7F50; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <h4 style="color: white !important; margin-top: 0px; margin-bottom: 5px; font-family: 'Helvetica Neue', sans-serif;">{t['super_power_title']}</h4>
+            <span style="font-size: 1rem; font-weight: normal;">{t['super_power_desc']}</span>
+        </div>
+        """, unsafe_allow_html=True)
 
-        if usadas >= limite_frases:
+        contador_ui = st.empty()
+        texto_contador = "∞" if es_admin else f"{u['frases_usadas_hoy']} / {lim_f}"
+        contador_ui.info(f"📊 {t['trainings']}: {texto_contador}")
+        
+        lang_stt = IDIOMAS_APRENDER[lang_activo_original]["stt"]
+        lang_tts = IDIOMAS_APRENDER[lang_activo_original]["tts"]
+        
+        if u["frases_usadas_hoy"] >= lim_f and not es_admin: 
             st.error(t["limit_reached"])
         else:
-            st.write("---")
-            audio_bytes = audio_recorder(text=f"{t['record']} {idioma_aprender} (Max {limite_segundos}s)", icon_size="2x")
-            frase_escrita = st.text_input(f"{t['write']} {idioma_aprender} (Max {limite_caracteres} ch):")
-            texto_final = ""
-
-            if audio_bytes:
+            audio_bytes = audio_recorder(text=f"{t['record']} {lang_activo_traducido} {t['record_btn'].format(lim_s).replace('🎙️', '')}", icon_size="2x")
+            with st.form("form_texto", clear_on_submit=False):
+                texto_escrito = st.text_input(f"{t['write']} {lang_activo_traducido}:")
+                submit_texto = st.form_submit_button(t["btn_send"])
+            
+            final_text = ""
+            if submit_texto and texto_escrito:
+                if len(texto_escrito) > lim_c: st.error(t["err_char"].format(lim_c))
+                else: 
+                    final_text = texto_escrito
+                    st.session_state.ultimo_audio = audio_bytes
+            elif audio_bytes and audio_bytes != st.session_state.ultimo_audio:
+                st.session_state.ultimo_audio = audio_bytes
                 with st.spinner(t["listening"]):
                     try:
-                        recognizer = sr.Recognizer()
+                        r = sr.Recognizer()
                         with sr.AudioFile(io.BytesIO(audio_bytes)) as source:
-                            data = recognizer.record(source, duration=limite_segundos) 
-                            texto_final = recognizer.recognize_google(data, language=lang_stt)
-                            st.success(f"🎤 : '{texto_final}'")
-                    except:
-                        st.error(t["err_audio"].format(limite_segundos))
-            
-            elif frase_escrita:
-                if len(frase_escrita) > limite_caracteres:
-                    st.error(t["err_char"].format(limite_caracteres))
-                else:
-                    texto_final = frase_escrita
+                            r.adjust_for_ambient_noise(source, duration=0.5)
+                            audio = r.record(source, duration=lim_s)
+                            final_text = r.recognize_google(audio, language=lang_stt)
+                            st.success(f"🎤: {final_text}")
+                    except: st.error(t["err_audio"])
 
-            if texto_final and texto_final != st.session_state.ultima_frase:
-                with st.spinner(f"{t['analyzing']} {idioma_aprender}..."):
-                    st.session_state.ultima_frase = texto_final 
-                    res = procesar_con_gemini(plan, texto_final, idioma_aprender, idioma_nativo)
+            if final_text and final_text != st.session_state.ultima_frase:
+                with st.spinner(f"{t['analyzing']}..."):
+                    st.session_state.ultima_frase = final_text
+                    res = procesar_con_gemini(final_text, lang_activo_original, idioma_nativo)
                     
-                    if "error" in res:
-                        st.warning(res["error"])
+                    if "error" in res: st.warning(res["error"])
                     else:
                         st.metric(t["score"], f"{res.get('puntuacion', 'N/A')}/10")
                         st.success(f"✅ {t['correction']} {res.get('correccion', '')}")
                         st.info(f"🗣️ {t['pronunciation']} {res.get('pronunciacion', '')}")
                         st.info(f"💡 {t['tip']} {res.get('tips', '')}")
-                        
                         try:
                             tts = gTTS(text=res.get('correccion', ''), lang=lang_tts)
                             tts.save("feedback.mp3")
                             st.audio("feedback.mp3")
-                        except:
-                            pass
+                        except: pass
                         
-                        registrar_uso(usuario["correo"])
-                        usadas_actualizadas = st.session_state.usuario_db["frases_usadas_hoy"]
-                        contador_ui.info(f"📊 {t['trainings']}: {usadas_actualizadas} / {limite_frases}")
+                        doc_ref = db.collection("usuarios").document(u["correo"])
+                        doc_ref.update({"frases_usadas_hoy": firestore.Increment(1)})
+                        st.session_state.usuario_db["frases_usadas_hoy"] += 1
+                        
+                        texto_contador_actualizado = "∞" if es_admin else f"{st.session_state.usuario_db['frases_usadas_hoy']} / {lim_f}"
+                        contador_ui.info(f"📊 {t['trainings']}: {texto_contador_actualizado}")
+            elif final_text and final_text == st.session_state.ultima_frase: st.warning(t["repeat"])
+
+    with tab_agent:
+        modo_elegido = st.radio(t["choose_mode"], [t["mode_fund"], t["mode_real"]], horizontal=True)
+        st.write("---")
+        
+        TEMAS_FUNDAMENTOS = t["topics"]
+        progreso_key = f"progreso_{lang_activo_original}"
+        leccion_actual = u.get(progreso_key, 0) 
+        es_fundamentos = (modo_elegido == t["mode_fund"])
+        
+        if es_fundamentos:
+            st.subheader(t["mode_fund"])
+            st.write(t["mode_fund_desc"])
+            if leccion_actual < len(TEMAS_FUNDAMENTOS):
+                tema_actual = TEMAS_FUNDAMENTOS[leccion_actual]
+                st.info(f"**{t['lesson_txt']} {leccion_actual + 1}/{len(TEMAS_FUNDAMENTOS)}:** {tema_actual}")
+            else:
+                tema_actual = "Repaso General Avanzado"
+                st.success("🌟 Has completado todos los fundamentos de este nivel.")
+        else:
+            st.subheader(t["mode_real"])
+            st.write(t["mode_real_desc"])
+            tema_actual = "Role-play conversacional"
+            
+        contador_agent = st.empty()
+        texto_contador_ag = "∞" if es_admin else f"{u['frases_usadas_hoy']} / {lim_f}"
+        contador_agent.info(f"📊 {t['trainings']}: {texto_contador_ag}")
+
+        if u["frases_usadas_hoy"] >= lim_f and not es_admin:
+            st.error(t["limit_reached"])
+        else:
+            sesion_reto_key = f"reto_{lang_activo_original}"
+            audio_reto_key = f"audio_reto_{lang_activo_original}"
+            
+            if sesion_reto_key not in st.session_state:
+                st.session_state[sesion_reto_key] = ""
+                st.session_state[audio_reto_key] = ""
+                
+            reto_activo = st.session_state.get(sesion_reto_key) != ""
+            ya_entreno_hoy = u["frases_usadas_hoy"] > 0
+            
+            if reto_activo or ya_entreno_hoy:
+                btn_texto = t["btn_next"]
+            else:
+                btn_texto = t["btn_gen_lesson"]
+                
+            if st.button(btn_texto, use_container_width=True):
+                with st.spinner(t["prep_lesson"]):
+                    if es_fundamentos:
+                        prompt_reto = f"Actúa como un tutor divertido. El usuario habla {idioma_nativo} y aprende {lang_activo_original}. Tema: '{tema_actual}'. Para mantener su atención, elige al azar UNA de estas dos mecánicas:\n1. 'Repetición': Enséñale 3 palabras del tema y pídele que pronuncie una en voz alta.\n2. 'Mini-Quiz': Hazle una pregunta rápida de opción múltiple (Ej. ¿Cómo se dice X? A) Y, B) Z, C) W) y pídele que responda PRONUNCIANDO la opción correcta en voz alta con su micrófono.\nREGLA ESTRICTA: NO uses etiquetas HTML. Usa comas o guiones. NUNCA le pidas que escriba, всегда проси ГОВОРИТЬ. Devuelve SOLO JSON: {{'leccion_texto': 'Mensaje divertido en {idioma_nativo} sin HTML', 'texto_audio': 'Escribe AQUÍ ÚNICAMENTE las palabras enseñadas en {lang_activo_original} separadas por comas, SIN repetirlas bajo ninguna circunstancia, y SIN agregar texto extra'}}"
+                    else:
+                        prompt_reto = f"El usuario habla {idioma_nativo} y practica {lang_activo_original}. Inventa un escenario de Role-play. REGLA ESTRICTA: NO uses etiquetas HTML. Devuelve SOLO JSON: {{'leccion_texto': 'Dile el contexto en {idioma_nativo} y hazle la primera pregunta en {lang_activo_original} sin HTML.', 'texto_audio': 'Solo la pregunta en {lang_activo_original}'}}"
+                        
+                    try:
+                        client = genai.Client(api_key=API_KEY_FREE)
+                        time.sleep(2)
+                        res_reto = client.models.generate_content(model='gemini-3.1-flash-lite-preview', contents=prompt_reto)
+                        res_json = json.loads(res_reto.text.replace('```json\n', '').replace('```', '').strip())
+                        st.session_state[sesion_reto_key] = res_json.get('leccion_texto', 'Error cargando texto')
+                        st.session_state[audio_reto_key] = res_json.get('texto_audio', '')
+                        st.rerun()
+                    except Exception as e:
+                        st.error("Servidores ocupados. Intenta de nuevo.")
+
+            if st.session_state.get(sesion_reto_key):
+                st.markdown(f"> 🤖 **Agente IA:** {st.session_state[sesion_reto_key]}")
+                
+                if st.session_state.get(audio_reto_key):
+                    try:
+                        tts_reto = gTTS(text=st.session_state[audio_reto_key], lang=IDIOMAS_APRENDER[lang_activo_original]["tts"])
+                        tts_reto.save("lesson_audio.mp3")
+                        st.audio("lesson_audio.mp3")
+                    except: pass
+                
+                st.write("---")
+                
+                audio_agent = audio_recorder(text=t["record_btn"].format(lim_s), icon_size="2x", key="mic_agent")
+                with st.form("form_agent", clear_on_submit=False):
+                    texto_agent = st.text_input(f"{t['write']} {lang_activo_traducido}:", key="txt_agent")
+                    submit_agent = st.form_submit_button(t["btn_send"])
+                
+                final_agent = ""
+                if submit_agent and texto_agent:
+                    final_agent = texto_agent
+                elif audio_agent and audio_agent != st.session_state.get("ultimo_audio_agent"):
+                    st.session_state["ultimo_audio_agent"] = audio_agent
+                    with st.spinner(t["listening"]):
+                        try:
+                            r = sr.Recognizer()
+                            with sr.AudioFile(io.BytesIO(audio_agent)) as source:
+                                audio = r.record(source, duration=lim_s)
+                                final_agent = r.recognize_google(audio, language=IDIOMAS_APRENDER[lang_activo_original]["stt"])
+                                st.success(f"🎤: {final_agent}")
+                        except: st.error(t["err_audio"])
+
+                if final_agent:
+                    with st.spinner(f"{t['analyzing']}..."):
+                        prompt_eval = f"Actúa como profesor de {lang_activo_original}. El usuario habla {idioma_nativo}. El reto era: '{st.session_state[sesion_reto_key]}'. El usuario respondió: '{final_agent}'. Evalúa si pronunció bien o si adivinó la respuesta correcta del Quiz. Devuelve SOLO JSON: {{'correccion': 'ESCRIBE AQUÍ SOLAMENTE LA FRASE CORREGIDA EN {lang_activo_original}. NADA EN {idioma_nativo}', 'pronunciacion': 'fonética en {idioma_nativo}', 'tips': 'Explica en {idioma_nativo} si logró el reto o acertó el quiz', 'puntuacion': '1-10'}}"
+                        
+                        try:
+                            client = genai.Client(api_key=API_KEY_FREE)
+                            time.sleep(2)
+                            res_eval = client.models.generate_content(model='gemini-3.1-flash-lite-preview', contents=prompt_eval)
+                            res_json = json.loads(res_eval.text.replace('```json\n', '').replace('```', '').strip())
                             
-            elif texto_final and texto_final == st.session_state.ultima_frase:
-                st.info(t["repeat"])
+                            st.metric(t["score"], f"{res_json.get('puntuacion', 'N/A')}/10")
+                            st.success(f"✅ {t['correction']} {res_json.get('correccion', '')}")
+                            st.info(f"🗣️ {t['pronunciation']} {res_json.get('pronunciacion', '')}")
+                            st.info(f"💡 {t['tip']} {res_json.get('tips', '')}")
+                            
+                            try:
+                                tts = gTTS(text=res_json.get('correccion', ''), lang=IDIOMAS_APRENDER[lang_activo_original]["tts"])
+                                tts.save("feedback_agent.mp3")
+                                st.audio("feedback_agent.mp3")
+                            except: pass
+
+                            doc_ref = db.collection("usuarios").document(u["correo"])
+                            doc_ref.update({"frases_usadas_hoy": firestore.Increment(1)})
+                            st.session_state.usuario_db["frases_usadas_hoy"] += 1
+                            
+                            texto_contador_ag_act = "∞" if es_admin else f"{st.session_state.usuario_db['frases_usadas_hoy']} / {lim_f}"
+                            contador_agent.info(f"📊 {t['trainings']}: {texto_contador_ag_act}")
+
+                            try:
+                                puntos_str = str(res_json.get('puntuacion', '0')).replace('/10', '').strip()
+                                puntos = int(puntos_str)
+                            except: puntos = 5
+
+                            if puntos >= 7:
+                                st.balloons()
+                                if es_fundamentos:
+                                    st.success(t["lesson_passed"])
+                                    doc_ref.update({progreso_key: firestore.Increment(1)})
+                                    st.session_state.usuario_db[progreso_key] = leccion_actual + 1
+                                else:
+                                    st.success(t["role_passed"])
+                                
+                                st.session_state[sesion_reto_key] = ""
+                                st.session_state[audio_reto_key] = ""
+
+                        except Exception as e:
+                            st.warning("Error evaluando. Intenta de nuevo.")
+
+    if tab_upgrade:
+        with tab_upgrade:
+            st.subheader(t["up_title"])
+            st.write(t["up_sub"])
+            st.info(f"✨ **{t['desc_standard']}**")
+            st.success(f"👑 **{t['desc_pro']}**")

@@ -1,0 +1,6 @@
+streamlit
+google-generativeai
+firebase-admin
+SpeechRecognition
+gTTS
+audio-recorder-streamlit
