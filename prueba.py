@@ -29,6 +29,10 @@ st.set_page_config(page_title="Voxis AI", page_icon=icono_pagina)
 
 st.markdown("""
     <style>
+    [data-testid="stHeader"] {visibility: hidden;}
+[data-testid="stToolbar"] {visibility: hidden;}
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
     .stApp { background-color: #F4F5F7; } 
     h1, h2, h3 { color: #0047AB !important; font-family: 'Helvetica Neue', sans-serif; } 
     .slogan-text { color: #5F6368; font-size: 1.2rem; font-style: italic; margin-bottom: 2rem; margin-top: -10px; }
