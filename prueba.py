@@ -177,14 +177,19 @@ def procesar_con_gemini(texto, idioma_aprender, idioma_nativo):
     prompt = f"Actúa como preparador experto de {idioma_aprender}. El estudiante habla nativamente {idioma_nativo}. Analiza la siguiente frase y devuelve SOLO JSON: {{'correccion': 'ESCRIBE AQUÍ SOLAMENTE LA FRASE CORREGIDA EN {idioma_aprender}. NADA EN {idioma_nativo}', 'pronunciacion': '...', 'tips': 'Explica en {idioma_nativo}', 'puntuacion': '1-10'}}. En 'pronunciacion', usa fonética para {idioma_nativo}. Frase a evaluar: '{texto}'"
     try: client = genai.Client(api_key=API_KEY_FREE)
     except Exception as e: return {"error": f"Auth Error: {e}"}
+    
     for mod in ['gemini-3.1-flash-lite-preview', 'gemini-flash-lite-latest', 'gemini-2.0-flash-lite']:
         try:
-            time.sleep(2) 
+            # Quitamos el time.sleep(2) forzado. La app será mucho más rápida.
             response = client.models.generate_content(model=mod, contents=prompt)
             res_text = response.text.replace('```json\n', '').replace('```', '').strip()
             return json.loads(res_text)
-        except Exception: continue
-    return {"error": "Servers busy."}
+        except Exception as e: 
+            # Solo hacemos pausa si hay error de cuota (429) antes de probar el siguiente modelo
+            if "429" in str(e):
+                time.sleep(2)
+            continue
+    return {"error": "Servidores ocupados temporalmente. Intenta de nuevo."}
 
 def evaluar_nivel(texto_diagnostico, idioma_aprender, idioma_nativo):
     prompt = f"El usuario intenta aprender {idioma_aprender} y su idioma nativo es {idioma_nativo}. Analiza este texto: '{texto_diagnostico}'. REGLA ESTRICTA: Si el texto está escrito en {idioma_nativo} en lugar de {idioma_aprender}, responde 'A1'. Si está escrito en {idioma_aprender}, determina su nivel CEFR (A1, A2, B1, B2, C1, C2). Responde ÚNICAMENTE con el nivel."
@@ -324,8 +329,15 @@ elif st.session_state.idioma_activo not in st.session_state.usuario_db.get("nive
             db.collection("usuarios").document(u["correo"]).update({"niveles": niveles_actuales})
             st.session_state.usuario_db["niveles"] = niveles_actuales
             
-            st.success(t["diag_success"].format(lang_objetivo_traducido, nivel_detectado))
-            time.sleep(2)
+            # Guardamos el mensaje en memoria en lugar de recargar inmediatamente
+            st.session_state.diag_completado = True
+            st.session_state.diag_mensaje = t["diag_success"].format(lang_objetivo_traducido, nivel_detectado)
+
+    # Fuera del spinner, mostramos el resultado y un botón para avanzar
+    if st.session_state.get("diag_completado"):
+        st.success(st.session_state.diag_mensaje)
+        if st.button("Ir al panel principal 🚀", use_container_width=True):
+            st.session_state.diag_completado = False
             st.rerun()
 
 # --- PANTALLA 4: DASHBOARD PRINCIPAL ---
@@ -396,6 +408,19 @@ else:
             st.error(t["limit_reached"])
         else:
             audio_bytes = audio_recorder(text=f"{t['record']} {lang_activo_traducido} {t['record_btn'].format(lim_s).replace('🎙️', '')}", icon_size="2x")
+            hint_dict = {
+                    "Español": "🖱️ **Haz un solo clic** para empezar a grabar, habla, y **vuelve a hacer clic** para enviar. (No lo mantengas presionado)",
+                    "Inglés": "🖱️ **Click once** to start recording, speak, and **click again** to send. (Do not hold it down)",
+                    "Francés": "🖱️ **Cliquez une fois** pour enregistrer, parlez, et **cliquez à nouveau** pour envoyer. (Ne maintenez pas appuyé)",
+                    "Alemán": "🖱️ **Klicken Sie einmal**, um aufzunehmen, sprechen Sie, und **klicken Sie erneut**, um zu senden. (Nicht gedrückt halten)",
+                    "Italiano": "🖱️ **Fai un solo clic** per registrare, parla e **fai di nuovo clic** per inviare. (Non tenerlo premuto)",
+                    "Portugués": "🖱️ **Clique uma vez** para gravar, fale e **clique novamente** para enviar. (Não mantenha pressionado)",
+                    "Mandarín": "🖱️ **点击一次** 开始录音，说话，然后 **再次点击** 发送。（请勿长按）",
+                    "Japonés": "🖱️ **1回クリック** して録音を開始し、話し、**もう一度クリック** して送信します。（長押ししないでください）",
+                    "Coreano": "🖱️ **한 번 클릭**하여 녹음을 시작하고, 말한 다음, **다시 클릭**하여 보냅니다. (길게 누르지 마세요)",
+                    "Ruso": "🖱️ **Нажмите один раз**, чтобы начать запись, говорите, и **нажмите еще раз**, чтобы отправить. (Не удерживайте)"
+                }
+                st.caption(hint_dict.get(idioma_nativo, hint_dict["Español"]))
             with st.form("form_texto", clear_on_submit=False):
                 texto_escrito = st.text_input(f"{t['write']} {lang_activo_traducido}:")
                 submit_texto = st.form_submit_button(t["btn_send"])
@@ -497,7 +522,6 @@ else:
                         
                     try:
                         client = genai.Client(api_key=API_KEY_FREE)
-                        time.sleep(2)
                         res_reto = client.models.generate_content(model='gemini-3.1-flash-lite-preview', contents=prompt_reto)
                         res_json = json.loads(res_reto.text.replace('```json\n', '').replace('```', '').strip())
                         st.session_state[sesion_reto_key] = res_json.get('leccion_texto', 'Error cargando texto')
@@ -519,10 +543,22 @@ else:
                 st.write("---")
                 
                 audio_agent = audio_recorder(text=t["record_btn"].format(lim_s), icon_size="2x", key="mic_agent")
+                hint_dict = {
+                    "Español": "🖱️ **Haz un solo clic** para empezar a grabar, habla, y **vuelve a hacer clic** para enviar. (No lo mantengas presionado)",
+                    "Inglés": "🖱️ **Click once** to start recording, speak, and **click again** to send. (Do not hold it down)",
+                    "Francés": "🖱️ **Cliquez une fois** pour enregistrer, parlez, et **cliquez à nouveau** pour envoyer. (Ne maintenez pas appuyé)",
+                    "Alemán": "🖱️ **Klicken Sie einmal**, um aufzunehmen, sprechen Sie, und **klicken Sie erneut**, um zu senden. (Nicht gedrückt halten)",
+                    "Italiano": "🖱️ **Fai un solo clic** per registrare, parla e **fai di nuovo clic** per inviare. (Non tenerlo premuto)",
+                    "Portugués": "🖱️ **Clique uma vez** para gravar, fale e **clique novamente** para enviar. (Não mantenha pressionado)",
+                    "Mandarín": "🖱️ **点击一次** 开始录音，说话，然后 **再次点击** 发送。（请勿长按）",
+                    "Japonés": "🖱️ **1回クリック** して録音を開始し、話し、**もう一度クリック** して送信します。（長押ししないでください）",
+                    "Coreano": "🖱️ **한 번 클릭**하여 녹음을 시작하고, 말한 다음, **다시 클릭**하여 보냅니다. (길게 누르지 마세요)",
+                    "Ruso": "🖱️ **Нажмите один раз**, чтобы начать запись, говорите, и **нажмите еще раз**, чтобы отправить. (Не удерживайте)"
+                }
+                st.caption(hint_dict.get(idioma_nativo, hint_dict["Español"]))
                 with st.form("form_agent", clear_on_submit=False):
                     texto_agent = st.text_input(f"{t['write']} {lang_activo_traducido}:", key="txt_agent")
                     submit_agent = st.form_submit_button(t["btn_send"])
-                
                 final_agent = ""
                 if submit_agent and texto_agent:
                     final_agent = texto_agent
@@ -543,7 +579,6 @@ else:
                         
                         try:
                             client = genai.Client(api_key=API_KEY_FREE)
-                            time.sleep(2)
                             res_eval = client.models.generate_content(model='gemini-3.1-flash-lite-preview', contents=prompt_eval)
                             res_json = json.loads(res_eval.text.replace('```json\n', '').replace('```', '').strip())
                             
@@ -579,11 +614,19 @@ else:
                                 else:
                                     st.success(t["role_passed"])
                                 
-                                st.session_state[sesion_reto_key] = ""
-                                st.session_state[audio_reto_key] = ""
+                                # Activamos la bandera en lugar de borrar la memoria al instante
+                                st.session_state.reto_superado = True
 
                         except Exception as e:
                             st.warning("Error evaluando. Intenta de nuevo.")
+
+            # ATENCIÓN: Esta línea debe ir a la misma altura/indentación que "if final_agent:"
+            if st.session_state.get("reto_superado"):
+                if st.button(t["btn_next"], use_container_width=True):
+                    st.session_state[sesion_reto_key] = ""
+                    st.session_state[audio_reto_key] = ""
+                    st.session_state.reto_superado = False
+                    st.rerun()
 
     if tab_upgrade:
         with tab_upgrade:
