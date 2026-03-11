@@ -1,4 +1,5 @@
 import streamlit as st
+import base64
 from google import genai
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -33,7 +34,8 @@ st.markdown("""
     [data-testid="stHeader"] {display: none !important;}
     [data-testid="stToolbar"] {display: none !important;}
     .block-container {
-        padding-top: 1rem !important; /* Espacio reducido igual al de Ajustes */
+        padding-top: 0rem !important; 
+        margin-top: -45px !important; /* Ajuste estricto para subir el contenido */
         padding-bottom: 50px !important;
     }
     
@@ -53,12 +55,7 @@ st.markdown("""
     
     /* 2. DISEÑO DE CARDS MODERNAS */
     .modern-card {
-        background-color: #ffffff;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-        margin-bottom: 20px;
-        border: 1px solid #eaeaea;
+        background-color: #ffffff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); margin-bottom: 20px; border: 1px solid #eaeaea;
     }
     .hero-title { text-align: center; color: #111; font-size: 1.5rem; font-weight: 700; margin-bottom: 5px; }
     .hero-desc { text-align: center; color: #666; font-size: 0.95rem; margin-bottom: 20px; }
@@ -211,13 +208,30 @@ def evaluar_nivel(texto_diagnostico, idioma_aprender, idioma_nativo):
     except: return "A1"
 
 
-# --- TOP BAR APP (Logo centrado y reducido) ---
-col_esp1, col_logo_center, col_esp2 = st.columns([1.5, 1, 1.5])
-with col_logo_center:
-    if os.path.exists("logo.png"): 
-        st.image("logo.png", use_container_width=True)
-    else:
-        st.markdown("<h2 style='text-align: center; margin:0; padding:0;'>Voxis AI</h2>", unsafe_allow_html=True)
+# --- TOP BAR APP (Logo HTML forzado a 120px) ---
+def get_base64_of_bin_file(bin_file):
+    try:
+        with open(bin_file, 'rb') as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except:
+        return None
+
+img_base64 = get_base64_of_bin_file("logo.png")
+if img_base64:
+    # Inyección HTML para forzar el tamaño ignorando el ancho relativo de Streamlit
+    st.markdown(
+        f'<div style="text-align: center; margin-bottom: 10px; margin-top: 0px;">'
+        f'<img src="data:image/png;base64,{img_base64}" width="120" style="max-width: 100%;">'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+else:
+    st.markdown("<h2 style='text-align: center; margin:0; padding:0;'>Voxis AI</h2>", unsafe_allow_html=True)
+
+# Selector de idioma nativo con el icono 🌐
+opciones_ui = [f"🌐 {t['lang_name'][l]}" for l in UI_TEXT.keys()]
+# ... (Continúa el resto de tu código sin cambios hasta el bloque del micrófono) ...
 
 # Selector de idioma nativo con el icono 🌐
 opciones_ui = [f"🌐 {t['lang_name'][l]}" for l in UI_TEXT.keys()]
@@ -376,7 +390,7 @@ else:
     tab_upgrade = tabs[2] if ("Pro" not in p and not es_admin) else None
 
     with tab_train:
-        # 1. CARD HERO ACTION (Micrófono centralizado con llave fija)
+        # 1. CARD HERO ACTION (Micrófono centralizado y aislado para evitar doble clic)
         st.markdown(f'<div class="modern-card">', unsafe_allow_html=True)
         st.markdown(f'<div class="hero-title">{t["hero_title"]}</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="hero-desc">{t["hero_desc"]}</div>', unsafe_allow_html=True)
@@ -387,7 +401,10 @@ else:
         if u["frases_usadas_hoy"] >= lim_f and not es_admin: 
             st.error(t["limit_reached"])
         else:
-            audio_bytes = audio_recorder(text="", icon_size="3x", key="hero_mic_main")
+            # Solución al doble clic: Anclamos el widget en un contenedor estático
+            mic_container = st.empty()
+            with mic_container:
+                audio_bytes = audio_recorder(text="", icon_size="3x", key="hero_mic_main")
             
             with st.expander(t['write'] + " " + lang_activo_traducido):
                 with st.form("form_texto", clear_on_submit=False):
