@@ -33,7 +33,7 @@ st.markdown("""
     [data-testid="stHeader"] {display: none !important;}
     [data-testid="stToolbar"] {display: none !important;}
     .block-container {
-        padding-top: 1.5rem !important; /* Espacio seguro para el logo */
+        padding-top: 1rem !important; /* Espacio reducido igual al de Ajustes */
         padding-bottom: 50px !important;
     }
     
@@ -211,8 +211,8 @@ def evaluar_nivel(texto_diagnostico, idioma_aprender, idioma_nativo):
     except: return "A1"
 
 
-# --- TOP BAR APP (Logo centrado y selector compacto) ---
-col_esp1, col_logo_center, col_esp2 = st.columns([1, 2, 1])
+# --- TOP BAR APP (Logo centrado y reducido) ---
+col_esp1, col_logo_center, col_esp2 = st.columns([1.5, 1, 1.5])
 with col_logo_center:
     if os.path.exists("logo.png"): 
         st.image("logo.png", use_container_width=True)
@@ -304,7 +304,7 @@ elif st.session_state.idioma_activo not in st.session_state.usuario_db.get("nive
     st.info(t["diag_prompt"].format(lang_objetivo_traducido))
     
     col_mic1, col_mic2, col_mic3 = st.columns([1, 1, 1])
-    with col_mic2: audio_diag = audio_recorder(text=t["record_btn"].format("10"), icon_size="3x", key="diag_mic")
+    with col_mic2: audio_diag = audio_recorder(text=t["record_btn"].format("10"), icon_size="3x", key="diag_mic_main")
     texto_diag_manual = st.text_input(t["write"])
     submit_diag = st.button(t["btn_send"])
 
@@ -376,7 +376,7 @@ else:
     tab_upgrade = tabs[2] if ("Pro" not in p and not es_admin) else None
 
     with tab_train:
-        # 1. CARD HERO ACTION (Micrófono centralizado)
+        # 1. CARD HERO ACTION (Micrófono centralizado con llave fija)
         st.markdown(f'<div class="modern-card">', unsafe_allow_html=True)
         st.markdown(f'<div class="hero-title">{t["hero_title"]}</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="hero-desc">{t["hero_desc"]}</div>', unsafe_allow_html=True)
@@ -387,7 +387,7 @@ else:
         if u["frases_usadas_hoy"] >= lim_f and not es_admin: 
             st.error(t["limit_reached"])
         else:
-            audio_bytes = audio_recorder(text="", icon_size="3x")
+            audio_bytes = audio_recorder(text="", icon_size="3x", key="hero_mic_main")
             
             with st.expander(t['write'] + " " + lang_activo_traducido):
                 with st.form("form_texto", clear_on_submit=False):
@@ -513,7 +513,7 @@ else:
                 st.write("---")
                 col_m1, col_m2, col_m3 = st.columns([1, 1, 1])
                 with col_m2:
-                    audio_agent = audio_recorder(text="", icon_size="2x", key="mic_agent")
+                    audio_agent = audio_recorder(text="", icon_size="2x", key="mic_agent_main")
                 
                 with st.expander(t["write"]):
                     with st.form("form_agent", clear_on_submit=False):
