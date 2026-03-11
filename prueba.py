@@ -203,64 +203,70 @@ if st.session_state.usuario_db is None:
     # 1. PANTALLA DE FORMULARIO INICIAL
     if not st.session_state.otp_sent:
         st.write(t["login_sub"])
-        
-        # Quitamos el 'st.form' para que los botones reaccionen al instante
-        correo_in = st.text_input(t["email"], key="email_input_box").strip().lower()
-        nombres = st.text_input(t["names"], key="name_input_box")
-        apellidos = st.text_input(t["lastnames"])
-        whatsapp = st.text_input(t["wa"], placeholder="+1 555")
-        st.write("---")
-        st.write(f"**{t['plan_select']}**")
-        plan_elegido = st.radio("Planes", [t["desc_free"], t["desc_standard"], t["desc_pro"]], label_visibility="collapsed")
-        st.write("---")
-        aceptar_tc = st.checkbox(t["tc_check"])
-        
-        if st.button(t["btn_login"], use_container_width=True, type="primary"):
-            if not aceptar_tc:
-                st.error(t["tc_error"])
-            elif correo_in and nombres:
-                # Verificación de Admin
-                admin_vault = str(st.secrets.get("ADMIN_EMAIL", "")).strip().lower()
-                
-                if correo_in == admin_vault:
-                    datos, msg = iniciar_sesion(correo_in, nombres, apellidos, whatsapp, plan_elegido)
-                    st.session_state.usuario_db = datos
-                    st.rerun()
-                else:
-                    # Usuario normal: Generar y Enviar PIN
-                    with st.spinner("Enviando código..."):
+
+        # VOLVEMOS AL st.form: Esto es vital para que móviles y web no ignoren el clic
+        with st.form("form_login"):
+            correo_in = st.text_input(t["email"]).strip().lower()
+            nombres = st.text_input(t["names"])
+            apellidos = st.text_input(t["lastnames"])
+            whatsapp = st.text_input(t["wa"], placeholder="+1 555")
+            st.write("---")
+            st.write(f"**{t['plan_select']}**")
+            plan_elegido = st.radio("Planes", [t["desc_free"], t["desc_standard"], t["desc_pro"]], label_visibility="collapsed")
+            st.write("---")
+            aceptar_tc = st.checkbox(t["tc_check"])
+
+            submit_login = st.form_submit_button(t["btn_login"], type="primary")
+
+            if submit_login:
+                if not aceptar_tc:
+                    st.error(t["tc_error"])
+                elif correo_in and nombres:
+                    # Verificación de Admin
+                    admin_vault = str(st.secrets.get("ADMIN_EMAIL", "")).strip().lower()
+
+                    if correo_in == admin_vault and admin_vault != "":
+                        datos, msg = iniciar_sesion(correo_in, nombres, apellidos, whatsapp, plan_elegido)
+                        st.session_state.usuario_db = datos
+                        st.rerun()
+                    else:
+                        # Usuario normal: Generar y Enviar PIN
                         codigo_gen = str(random.randint(1000, 9999))
                         if enviar_otp(correo_in, codigo_gen, t):
                             st.session_state.otp_sent = True
                             st.session_state.otp_code = codigo_gen
                             st.session_state.temp_data = {
-                                "correo": correo_in, "nombres": nombres, 
+                                "correo": correo_in, "nombres": nombres,
                                 "apellidos": apellidos, "whatsapp": whatsapp, "plan": plan_elegido
                             }
                             st.rerun()
                         else:
                             st.error(t["email_error"])
-            else:
-                st.error("⚠️ Fill required fields / Completa los campos.")
+                else:
+                    st.error("⚠️ Completa los campos requeridos.")
+
+        with st.expander(t["tc_title"]):
+            st.markdown(f'<div class="legal-text">{t["tc_text"]}</div>', unsafe_allow_html=True)
 
     # 2. PANTALLA DE INGRESO DEL PIN (OTP)
     else:
         st.info(t["otp_sent_msg"].format(st.session_state.temp_data["correo"]))
-        
-        # El 'key' es vital para que Streamlit no borre el número al hacer clic
-        pin_usuario = st.text_input(t["otp_label"], max_chars=4, key="widget_pin")
-        
-        if st.button(t["btn_verify"], use_container_width=True, type="primary"):
-            # Comparamos ignorando espacios
-            if str(pin_usuario).strip() == str(st.session_state.otp_code).strip():
-                d = st.session_state.temp_data
-                datos, msg = iniciar_sesion(d["correo"], d["nombres"], d["apellidos"], d["whatsapp"], d["plan"])
-                st.session_state.usuario_db = datos
-                st.session_state.otp_sent = False 
-                st.rerun()
-            else:
-                st.error(f"{t['otp_error']} (Escribiste: {pin_usuario})")
-        
+
+        with st.form("form_otp"):
+            pin_usuario = st.text_input(t["otp_label"], max_chars=4)
+            submit_otp = st.form_submit_button(t["btn_verify"], type="primary")
+
+            if submit_otp:
+                if str(pin_usuario).strip() == str(st.session_state.otp_code).strip():
+                    d = st.session_state.temp_data
+                    datos, msg = iniciar_sesion(d["correo"], d["nombres"], d["apellidos"], d["whatsapp"], d["plan"])
+                    st.session_state.usuario_db = datos
+                    st.session_state.otp_sent = False
+                    st.rerun()
+                else:
+                    st.error(t["otp_error"])
+
+        # El botón de cancelar va fuera del form para que actúe de inmediato
         if st.button(t["btn_cancel"], use_container_width=True):
             st.session_state.otp_sent = False
             st.rerun()
