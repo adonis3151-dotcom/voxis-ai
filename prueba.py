@@ -420,7 +420,7 @@ else:
                     "Coreano": "🖱️ **한 번 클릭**하여 녹음을 시작하고, 말한 다음, **다시 클릭**하여 보냅니다. (길게 누르지 마세요)",
                     "Ruso": "🖱️ **Нажмите один раз**, чтобы начать запись, говорите, и **нажмите еще раз**, чтобы отправить. (Не удерживайте)"
                 }
-                st.caption(hint_dict.get(idioma_nativo, hint_dict["Español"]))
+            st.caption(hint_dict.get(idioma_nativo, hint_dict["Español"]))
             with st.form("form_texto", clear_on_submit=False):
                 texto_escrito = st.text_input(f"{t['write']} {lang_activo_traducido}:")
                 submit_texto = st.form_submit_button(t["btn_send"])
