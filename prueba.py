@@ -310,7 +310,7 @@ elif st.session_state.idioma_activo not in st.session_state.usuario_db.get("nive
 
     texto_final_diag = ""
     if submit_diag and texto_diag_manual: texto_final_diag = texto_diag_manual
-    elif audio_diag and audio_diag != st.session_state.audio_diagnostico:
+    elif audio_diag and audio_diag != st.session_state.audio_diagnostico and len(audio_diag) > 1000:
         st.session_state.audio_diagnostico = audio_diag
         with st.spinner(t["listening"]):
             try:
@@ -431,7 +431,7 @@ else:
                 else: 
                     final_text = texto_escrito
                     st.session_state.ultimo_audio = audio_bytes
-            elif audio_bytes and audio_bytes != st.session_state.ultimo_audio:
+            elif audio_bytes and audio_bytes != st.session_state.ultimo_audio and len(audio_bytes) > 1000:
                 st.session_state.ultimo_audio = audio_bytes
                 with st.spinner(t["listening"]):
                     try:
@@ -562,7 +562,7 @@ else:
                 final_agent = ""
                 if submit_agent and texto_agent:
                     final_agent = texto_agent
-                elif audio_agent and audio_agent != st.session_state.get("ultimo_audio_agent"):
+                elif audio_agent and audio_agent != st.session_state.get("ultimo_audio_agent") and len(audio_agent) > 1000:
                     st.session_state["ultimo_audio_agent"] = audio_agent
                     with st.spinner(t["listening"]):
                         try:
@@ -622,7 +622,7 @@ else:
 
             # ATENCIÓN: Esta línea debe ir a la misma altura/indentación que "if final_agent:"
             if st.session_state.get("reto_superado"):
-                if st.button(t["btn_next"], use_container_width=True):
+                if st.button(t["btn_next"], use_container_width=True, key="btn_continuar_reto"):
                     st.session_state[sesion_reto_key] = ""
                     st.session_state[audio_reto_key] = ""
                     st.session_state.reto_superado = False
