@@ -173,21 +173,19 @@ st.markdown("""
         border: 1px solid #1E2A45 !important; 
         border-radius: 10px !important; 
         padding: 4px 12px !important; 
-        display: flex !important; 
-        justify-content: center !important; 
-        align-items: center !important;
     }
     button[data-testid="stPopoverButton"] p {
-        font-size: 1.4rem !important; 
+        font-size: 1rem !important; /* Tamaño normal restaurado */
         margin: 0 !important; 
-        display: block !important; 
     }
-    button[data-testid="stPopoverButton"] svg { 
-        display: none !important; /* Oculta solo la flecha nativa, manteniendo el engranaje */
+    /* Ocultar específicamente la palabra "expand_more" y la flecha */
+    button[data-testid="stPopoverButton"] .material-symbols-rounded,
+    button[data-testid="stPopoverButton"] > div:last-child {
+        display: none !important;
+        font-size: 0 !important;
+        color: transparent !important;
     }
     
-    /* Hide material icon text in expander/popover */
-    .material-symbols-rounded { font-size:0 !important; width:0 !important; overflow:hidden !important; }
     /* Streamlit expander toggle arrow text */
     [data-testid="stExpander"] summary > div > div:first-child svg { display:none !important; }
     [data-testid="stExpander"] details > summary > div > div:first-child { display:none !important; }
