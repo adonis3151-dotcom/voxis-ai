@@ -47,165 +47,115 @@ st.set_page_config(page_title="Voxis AI", page_icon=icono_pagina, layout="center
 
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
 
-    /* === MODO OSCURO GLOBAL === */
-    html, body, .stApp { background-color: #0A0E1A !important; font-family: 'Inter', sans-serif !important; }
-    [data-testid="stHeader"] {display: none !important;}
-    [data-testid="stToolbar"] {display: none !important;}
-    .block-container { padding-top: 0rem !important; margin-top: -45px !important; padding-bottom: 60px !important; }
+    /* BASE */
+    html, body, .stApp { background-color:#0A0E1A !important; font-family:'Inter',sans-serif !important; }
+    [data-testid="stHeader"]  { display:none !important; }
+    [data-testid="stToolbar"] { display:none !important; }
+    footer { display:none !important; }
+    .block-container { padding-top:0 !important; margin-top:-45px !important; padding-bottom:80px !important; max-width:480px !important; }
 
-    /* Tipografía */
-    p, span, label { color: #C9D0E0 !important; font-family: 'Inter', sans-serif !important; }
-    h1, h2, h3 { color: #FFFFFF !important; font-family: 'Inter', sans-serif !important; margin-top: 0 !important; margin-bottom: 0.2rem !important; }
-    .slogan-text { color: #7A84A0; font-size: 1.1rem; font-style: italic; margin-bottom: 1.5rem; text-align: center; }
+    /* TYPOGRAPHY */
+    p, span, label { color:#C9D0E0 !important; font-family:'Inter',sans-serif !important; }
+    h1,h2,h3 { color:#FFFFFF !important; font-family:'Inter',sans-serif !important; margin-top:0 !important; margin-bottom:0.2rem !important; }
+    hr { margin:0.4rem 0 !important; border-color:#1E2A45 !important; }
+    .stCaption { color:#7A84A0 !important; }
 
-    /* Separadores */
-    hr { margin-top: 0.4rem !important; margin-bottom: 0.4rem !important; border-color: #1E2A45 !important; }
-    .stSelectbox { margin-bottom: 0 !important; }
+    /* PILL TABS */
+    div[data-baseweb="tab-list"] {
+        background:#12192E !important; border-radius:100px !important;
+        padding:4px !important; gap:2px !important;
+        border:none !important; border-bottom:none !important; margin:8px 0 12px 0 !important;
+    }
+    div[data-baseweb="tab-highlight"] { display:none !important; }
+    div[data-baseweb="tab-border"]    { display:none !important; }
+    button[data-baseweb="tab"] {
+        background:transparent !important; border:none !important; border-radius:100px !important;
+        color:#7A84A0 !important; font-size:0.82rem !important; font-weight:600 !important;
+        padding:7px 14px !important; transition:all 0.25s ease !important; flex:1 !important;
+    }
+    button[data-baseweb="tab"][aria-selected="true"] {
+        background:linear-gradient(135deg,#FF7F50,#E05020) !important;
+        color:#FFFFFF !important; box-shadow:0 2px 12px rgba(255,127,80,0.45) !important;
+    }
+    button[data-baseweb="tab"] p { color:inherit !important; font-size:0.82rem !important; font-weight:600 !important; margin:0 !important; }
 
-    /* === BOTONES === */
+    /* BUTTONS */
     .stButton>button, .stFormSubmitButton>button {
-        background: linear-gradient(135deg, #FF7F50, #E0693E);
-        color: white; border-radius: 10px; border: none;
-        font-weight: 600; transition: all 0.2s ease; font-family: 'Inter', sans-serif;
+        background:linear-gradient(135deg,#FF7F50,#E0693E);
+        color:white; border-radius:12px; border:none; font-weight:700; font-size:0.95rem;
+        padding:10px 20px; transition:all 0.2s ease; font-family:'Inter',sans-serif;
     }
     .stButton>button:hover, .stFormSubmitButton>button:hover {
-        background: linear-gradient(135deg, #E0693E, #C0552A);
-        color: white; transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(255,127,80,0.35);
+        background:linear-gradient(135deg,#E0693E,#C0552A); color:white;
+        transform:translateY(-1px); box-shadow:0 6px 20px rgba(255,127,80,0.4);
     }
 
-    /* === CARDS === */
-    .modern-card {
-        background-color: #131929; border-radius: 14px; padding: 20px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.4); margin-bottom: 16px; border: 1px solid #1E2A45;
-    }
+    /* CARDS */
+    .modern-card { background:#131929; border-radius:16px; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.4); margin-bottom:14px; border:1px solid #1E2A45; }
 
-    /* === HERO MICRÓFONO === */
-    .mic-hero-wrapper { display: flex; flex-direction: column; align-items: center; padding: 24px 0 8px 0; }
-    .mic-label { color: #FFFFFF; font-size: 1.05rem; font-weight: 600; margin-bottom: 18px; text-align: center; }
-    .mic-sublabel { color: #7A84A0; font-size: 0.82rem; margin-top: 14px; text-align: center; }
+    /* AUDIO RECORDER */
     div[data-testid="stAudioRecorder"] {
-        display: flex !important; justify-content: center !important;
-        transform: scale(1.9) !important; margin: 10px auto 10px auto !important;
-        filter: drop-shadow(0 0 20px rgba(255,127,80,0.6)) !important;
+        display:flex !important; justify-content:center !important;
+        transform:scale(1.8) !important; margin:10px auto !important;
+        filter:drop-shadow(0 0 24px rgba(255,127,80,0.65)) !important;
     }
+    [data-testid="stCustomComponentV1"] { background:#0A0E1A !important; border:none !important; overflow:visible !important; }
+    iframe[title="audio_recorder.audio_recorder"] { background:#0A0E1A !important; border:none !important; }
 
-    /* === MÉTRICAS === */
-    div[data-testid="stMetric"] { text-align: center !important; background-color: #131929; border-radius: 10px; padding: 10px; border: 1px solid #1E2A45; }
-    div[data-testid="stMetricValue"] { display: flex; justify-content: center; color: #FF7F50 !important; font-weight: bold; }
-
-    /* === ALERTAS === */
-    .stAlert { border-radius: 10px !important; border-left: 4px solid #FF7F50 !important; background-color: #131929 !important; }
-
-    /* === INPUTS === */
-    .stTextInput>div>div>input { background-color: #1E2A45 !important; color: #E8EAF0 !important; border-radius: 8px !important; border: 1px solid #2E3F5C !important; }
-
-    /* === SELECT === */
-    .stSelectbox > div > div { background-color: #1E2A45 !important; border-color: #2E3F5C !important; }
-    .stSelectbox svg { fill: #C9D0E0 !important; }
-
-    /* === RADIO + CHECKBOX === */
-    .stRadio label, .stCheckbox label { color: #C9D0E0 !important; }
-
-    /* === PROGRESS BAR === */
-    .stProgress > div > div > div { background: linear-gradient(90deg, #FF7F50, #FF9E7E) !important; border-radius: 10px; }
-    .stProgress > div > div { background-color: #1E2A45 !important; border-radius: 10px; }
-
-    /* === TABS === */
-    button[data-baseweb="tab"] { padding: 0.7rem 1.2rem !important; background-color: #131929 !important; color: #7A84A0 !important; border-radius: 8px !important; transition: all 0.2s ease; }
-    button[data-baseweb="tab"][aria-selected="true"] { background: linear-gradient(135deg, #FF7F50, #E0693E) !important; color: white !important; }
-    button[data-baseweb="tab"] div[data-testid="stMarkdownContainer"] p { font-size: 1rem !important; font-weight: 600 !important; }
-    div[data-baseweb="tab-list"] { gap: 6px; padding-bottom: 8px; background-color: #0A0E1A !important; border-bottom: 1px solid #1E2A45 !important; }
-
-    /* === EXPANDER === */
-    details { background-color: #131929 !important; border-color: #1E2A45 !important; border-radius: 10px !important; }
-    summary { color: #C9D0E0 !important; }
-
-    /* === CAPTION === */
-    .stCaption { color: #7A84A0 !important; }
-    .legal-text { font-size: 0.8rem; color: #7A84A0; }
-
-    /* === BOTÓN GOOGLE === */
-    .google-btn {
-        display: flex; align-items: center; justify-content: center; gap: 10px;
-        background-color: #1E2A45; color: #E8EAF0 !important;
-        padding: 12px 20px; border-radius: 10px; text-decoration: none;
-        border: 1px solid #2E3F5C; font-weight: 600; font-size: 0.95rem;
-        transition: all 0.2s ease; margin-bottom: 10px; width: 100%; cursor: pointer; box-sizing: border-box;
-    }
-    .google-btn:hover { background-color: #2E3F5C; border-color: #FF7F50; color: white !important; }
-    /* SELECTBOX - color del texto seleccionado */
-    .stSelectbox [data-baseweb="select"] span { color: #E8EAF0 !important; }
-    .stSelectbox [data-baseweb="select"] > div { color: #E8EAF0 !important; }
-    div[data-testid="stSelectbox"] div { color: #E8EAF0 !important; }
-    [data-baseweb="option"] { background-color: #1E2A45 !important; color: #E8EAF0 !important; }
-    [data-baseweb="menu"] { background-color: #1E2A45 !important; }
-    .divider-text { text-align:center; color:#7A84A0; margin: 8px 0; font-size:0.85rem; }
-    /* TOPIC CARDS — fundamentos grid overflow fix */
-    [data-testid="stColumn"] [data-testid="stMarkdownContainer"] p { 
-        word-break: break-word; overflow-wrap: break-word; white-space: normal;
-    }
-    [data-testid="stExpander"] { overflow: visible !important; }
-
-    /* Hide Streamlit expander arrow icon text (Material Icon fallback) */
-    [data-testid="stExpanderToggleIcon"] svg { display: none !important; }
-    [data-testid="stExpanderToggleIcon"] { display: none !important; }
-    details summary > div > div:first-child { 
-        width: 0 !important; overflow: hidden !important; font-size: 0 !important;
-    }
-    /* Audio recorder dark mode — force dark container */
-    iframe[title="audio_recorder.audio_recorder"] {
-        background: #0F1525 !important;
-        border-radius: 14px !important;
-        border: 1px solid #1E2A45 !important;
-        min-height: 80px !important;
-        display: block !important;
-        width: 100% !important;
-    }
-    [data-testid="stCustomComponentV1"] {
-        background: #0F1525 !important;
-        border-radius: 14px !important;
-        border: 1px solid #1E2A45 !important;
-        overflow: hidden !important;
-    }
-    /* Center the mic component */
-    .mic-hero-wrapper [data-testid="stCustomComponentV1"] {
-        max-width: 200px !important;
-        margin: 0 auto !important;
-    }
-
-    /* MIC GLOW SECTION */
+    /* MIC GLOW */
     .mic-glow-section { text-align:center; padding:16px 0 8px 0; }
-    .mic-label { font-size:1rem; color:#CBD5E0; margin-bottom:10px; }
-    .mic-glow-wrapper {
-        position:relative; width:180px; height:110px;
-        margin:0 auto; display:flex; align-items:center; justify-content:center;
-    }
+    .mic-label { font-size:0.95rem; color:#CBD5E0; margin-bottom:8px; }
+    .mic-glow-wrapper { position:relative; width:200px; height:120px; margin:0 auto; display:flex; align-items:center; justify-content:center; }
     .mic-glow-wrapper::before {
-        content:''; position:absolute;
-        width:130px; height:130px;
-        background:radial-gradient(circle,rgba(255,127,80,0.4) 0%,rgba(255,127,80,0.1) 55%,transparent 75%);
-        border-radius:50%;
-        animation:mic-pulse 2.5s ease-in-out infinite;
-        pointer-events:none; top:-10px; left:25px;
+        content:''; position:absolute; width:140px; height:140px;
+        background:radial-gradient(circle,rgba(255,100,50,0.5) 0%,rgba(255,127,80,0.2) 45%,transparent 70%);
+        border-radius:50%; animation:mic-pulse 2.5s ease-in-out infinite;
+        pointer-events:none; top:-10px; left:30px;
     }
-    @keyframes mic-pulse {
-        0%,100%{ transform:scale(1); opacity:0.9; }
-        50%{ transform:scale(1.25); opacity:0.35; }
-    }
-    .mic-sublabel { font-size:0.85rem; color:#7A84A0; margin-top:6px; }
+    @keyframes mic-pulse { 0%,100%{ transform:scale(1); opacity:0.9; } 50%{ transform:scale(1.3); opacity:0.3; } }
+    .mic-sublabel { font-size:0.82rem; color:#7A84A0; margin-top:8px; }
+
     /* LESSON CARDS */
-    .lesson-card-active { background:#1E2A45; border-left:3px solid #FF7F50; border-radius:8px; padding:10px 14px; margin:4px 0; color:#FFFFFF; }
-    .lesson-card-done   { background:#111827; border-radius:8px; padding:10px 14px; margin:4px 0; color:#4A5568; }
-    .lesson-card-locked { background:#0F1525; border-radius:8px; padding:10px 14px; margin:4px 0; color:#2D3748; }
+    .lesson-card-active { background:#1A2845; border-left:3px solid #FF7F50; border-radius:10px; padding:12px 16px; margin:5px 0; color:#FFFFFF; font-weight:600; }
+    .lesson-card-done   { background:#0E1520; border-radius:10px; padding:12px 16px; margin:5px 0; color:#3A4560; }
+    .lesson-card-locked { background:#0A1018; border-radius:10px; padding:12px 16px; margin:5px 0; color:#2A3040; }
+
     /* PLAN CARDS */
-    .plan-card-free { background:#111827; border:1px solid #374151; border-radius:14px; padding:16px 18px; margin:8px 0; }
-    .plan-card-std  { background:#1A2540; border:2px solid #FF7F50; border-radius:14px; padding:16px 18px; margin:8px 0; }
-    .plan-card-pro  { background:#1A2540; border:2px solid #FFB347; border-radius:14px; padding:16px 18px; margin:8px 0; }
-    /* SETTINGS POPOVER */
-    [data-testid="stPopover"] { float:right; }
+    .plan-card-free { background:#111827; border:1px solid #374151; border-radius:16px; padding:18px 20px; margin:10px 0; }
+    .plan-card-std  { background:#1A2540; border:2px solid #FF7F50; border-radius:16px; padding:18px 20px; margin:10px 0; box-shadow:0 0 16px rgba(255,127,80,0.15); }
+    .plan-card-pro  { background:#1A2030; border:2px solid #FFB347; border-radius:16px; padding:18px 20px; margin:10px 0; box-shadow:0 0 16px rgba(255,179,71,0.15); }
+
+    /* METRICS / ALERTS / INPUTS / SELECT */
+    div[data-testid="stMetric"] { text-align:center !important; background:#131929; border-radius:10px; padding:10px; border:1px solid #1E2A45; }
+    div[data-testid="stMetricValue"] { display:flex; justify-content:center; color:#FF7F50 !important; font-weight:bold; }
+    .stAlert { border-radius:10px !important; border-left:4px solid #FF7F50 !important; background:#131929 !important; }
+    .stTextInput>div>div>input { background:#1E2A45 !important; color:#E8EAF0 !important; border-radius:10px !important; border:1px solid #2E3F5C !important; }
+    .stSelectbox>div>div { background:#1E2A45 !important; border-color:#2E3F5C !important; }
+    .stSelectbox svg { fill:#C9D0E0 !important; }
+    .stSelectbox [data-baseweb="select"] span { color:#E8EAF0 !important; }
+    div[data-testid="stSelectbox"] div { color:#E8EAF0 !important; }
+    [data-baseweb="option"] { background:#1E2A45 !important; color:#E8EAF0 !important; }
+    [data-baseweb="menu"]   { background:#1E2A45 !important; }
+    .stRadio label, .stCheckbox label { color:#C9D0E0 !important; }
+    .stProgress>div>div>div { background:linear-gradient(90deg,#FF7F50,#FF9E7E) !important; border-radius:10px; }
+    .stProgress>div>div { background:#1E2A45 !important; border-radius:10px; }
+
+    /* EXPANDERS */
+    details { background:#131929 !important; border-color:#1E2A45 !important; border-radius:10px !important; }
+    summary { color:#C9D0E0 !important; }
+    [data-testid="stExpanderToggleIcon"] { display:none !important; }
+    details summary>div>div:first-child { width:0 !important; overflow:hidden !important; font-size:0 !important; }
+
+    /* GOOGLE BTN */
+    .google-btn { display:flex; align-items:center; justify-content:center; gap:10px; background:#1E2A45; color:#E8EAF0 !important; padding:12px 20px; border-radius:10px; text-decoration:none; border:1px solid #2E3F5C; font-weight:600; font-size:0.95rem; transition:all 0.2s ease; margin-bottom:10px; width:100%; cursor:pointer; box-sizing:border-box; }
+    .google-btn:hover { background:#2E3F5C; border-color:#FF7F50; color:white !important; }
+
+    /* MISC */
+    .divider-text { text-align:center; color:#7A84A0; margin:8px 0; font-size:0.85rem; }
+    [data-testid="stColumn"] [data-testid="stMarkdownContainer"] p { word-break:break-word; overflow-wrap:break-word; white-space:normal; }
+    button[data-testid="stPopoverButton"] span:not(:first-child) { display:none !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -613,7 +563,7 @@ else:
 
     # TABS — always 3, visible for all users (upgrade always shown)
     tab_train, tab_agent, tab_upgrade = st.tabs([
-        t["tab_train"], t["tab_agent"], "\u2b50 " + t["tab_upgrade"]
+        t["tab_train"], t["tab_agent"], t["tab_upgrade"]
     ])
 
     # ── TAB 1: ENTRENAMIENTO ──────────────────────────────────────────────────
@@ -631,10 +581,7 @@ else:
                 '<div class="mic-glow-wrapper">'
             )
             st.markdown(mic_label_html, unsafe_allow_html=True)
-            audio_bytes = audio_recorder(
-                text="", icon_size="4x", key="hero_mic_main",
-                neutral_color="#FF7F50", recording_color="#FF4500", icon_color="#FFFFFF"
-            )
+            audio_bytes = audio_recorder(text="", icon_size="4x", key="hero_mic_main")
             st.markdown(
                 '</div>' +
                 '<div class="mic-sublabel">Max ' + str(lim_s) + 's &nbsp;\u00b7&nbsp; ' + t["hero_desc"] + '</div>' +
@@ -788,8 +735,7 @@ else:
                 st.write("---")
                 col_m1, col_m2, col_m3 = st.columns([1,1,1])
                 with col_m2:
-                    audio_agent = audio_recorder(text="", icon_size="2x", key="mic_agent_main",
-                                                 neutral_color="#FF7F50", recording_color="#FF4500", icon_color="#FFFFFF")
+                    audio_agent = audio_recorder(text="", icon_size="2x", key="mic_agent_main")
                 with st.expander(t["write"]):
                     with st.form("form_agent", clear_on_submit=False):
                         texto_agent  = st.text_input("Escribe:", key="txt_agent")
