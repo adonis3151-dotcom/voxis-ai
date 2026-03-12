@@ -169,21 +169,21 @@ st.markdown("""
     
     /* FIX PARA EL BOTÓN DE AJUSTES (POPOVER ⚙️) */
     button[data-testid="stPopoverButton"] {
-        background: #131929 !important; 
-        border: 1px solid #1E2A45 !important; 
-        border-radius: 10px !important; 
-        padding: 4px 12px !important; 
+        background: #131929 !important;
+        border: 1px solid #1E2A45 !important;
+        border-radius: 10px !important;
+        padding: 4px 12px !important;
     }
+
+    /* Mantener el texto con tamaño normal */
     button[data-testid="stPopoverButton"] p {
-        font-size: 1rem !important; /* Tamaño normal restaurado */
-        margin: 0 !important; 
+        font-size: 1rem !important;
+        margin: 0 !important;
     }
-    /* Ocultar específicamente la palabra "expand_more" y la flecha */
-    button[data-testid="stPopoverButton"] .material-symbols-rounded,
-    button[data-testid="stPopoverButton"] > div:last-child {
-        display: none !important;
+
+    /* Ocultar solo la flecha expand_more sin romper el botón */
+    button[data-testid="stPopoverButton"] span.material-symbols-rounded {
         font-size: 0 !important;
-        color: transparent !important;
     }
     
     /* Streamlit expander toggle arrow text */
