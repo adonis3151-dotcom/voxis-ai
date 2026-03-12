@@ -343,7 +343,7 @@ def get_base64_of_bin_file(bin_file):
 
 # Logo SVG soundwave bars — darkmode, sin dependencia del PNG
 st.markdown(
-    '<div style="text-align:center; padding: 28px 0 4px 0;">'
+    '<div style="text-align:center; padding: 48px 0 6px 0;">'
     '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="24" viewBox="0 0 32 24" '
     'style="vertical-align:middle; margin-right:6px;">'
     '<rect x="0"  y="10" width="4" height="7"  rx="2" fill="#FF7F50"/>'
@@ -434,7 +434,7 @@ if st.session_state.usuario_db is None:
         st.markdown(
             f'<details style="margin-top:18px; padding:10px 14px; background:#111827; border:1px solid #1E2A45; border-radius:10px;">'
             f'<summary style="cursor:pointer; color:#7A84A0; font-size:0.85rem; list-style:none;">'
-            f'📜 {t["tc_title"]}</summary>'
+            f'{t["tc_title"]}</summary>'
             f'<div class="legal-text" style="margin-top:8px;">{t["tc_text"]}</div></details>',
             unsafe_allow_html=True
         )
