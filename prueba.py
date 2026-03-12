@@ -166,29 +166,14 @@ st.markdown("""
     /* MISC */
     .divider-text { text-align:center; color:#7A84A0; margin:8px 0; font-size:0.85rem; }
     [data-testid="stColumn"] [data-testid="stMarkdownContainer"] p { word-break:break-word; overflow-wrap:break-word; white-space:normal; }
-    
-    /* FIX PARA EL BOTÓN DE AJUSTES (POPOVER ⚙️) */
-    button[data-testid="stPopoverButton"] {
-        background: #131929 !important;
-        border: 1px solid #1E2A45 !important;
-        border-radius: 10px !important;
-        padding: 4px 12px !important;
-    }
-
-    /* Mantener el texto con tamaño normal */
-    button[data-testid="stPopoverButton"] p {
-        font-size: 1rem !important;
-        margin: 0 !important;
-    }
-
-    /* Ocultar solo la flecha expand_more sin romper el botón */
-    button[data-testid="stPopoverButton"] span.material-symbols-rounded {
-        font-size: 0 !important;
-    }
-    
+    button[data-testid="stPopoverButton"] span:not(:first-child) { display:none !important; }
+    /* Hide material icon text in expander/popover */
+    .material-symbols-rounded { font-size:0 !important; width:0 !important; overflow:hidden !important; }
     /* Streamlit expander toggle arrow text */
     [data-testid="stExpander"] summary > div > div:first-child svg { display:none !important; }
     [data-testid="stExpander"] details > summary > div > div:first-child { display:none !important; }
+    /* Force hide expand_more / expand_less chars in buttons */
+    button[data-testid="stPopoverButton"] > div:last-child { display:none !important; }
     /* Tab scroll arrows hidden */
     [data-testid="stTabScrollDirectionButton"] { display:none !important; }
     div[data-baseweb="tab-list"] { overflow:hidden !important; }
@@ -587,7 +572,7 @@ else:
             unsafe_allow_html=True
         )
     with hdr_c2:
-        with st.popover("⚙️"):
+        with st.popover("\u2699\ufe0f"):
             st.write("**" + t["settings"] + "**")
             if st.button(t["change_lang"], use_container_width=True, key="hdr_clang"):
                 st.session_state.idioma_activo = None
