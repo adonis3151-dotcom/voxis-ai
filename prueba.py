@@ -166,20 +166,26 @@ st.markdown("""
     /* MISC */
     .divider-text { text-align:center; color:#7A84A0; margin:8px 0; font-size:0.85rem; }
     [data-testid="stColumn"] [data-testid="stMarkdownContainer"] p { word-break:break-word; overflow-wrap:break-word; white-space:normal; }
-    button[data-testid="stPopoverButton"] span:not(:first-child) { display:none !important; }
-    /* Hide material icon text in expander/popover */
+    /* Hide material icon text in expanders */
     .material-symbols-rounded { font-size:0 !important; width:0 !important; overflow:hidden !important; }
-    /* Streamlit expander toggle arrow text */
     [data-testid="stExpander"] summary > div > div:first-child svg { display:none !important; }
     [data-testid="stExpander"] details > summary > div > div:first-child { display:none !important; }
-    /* Force hide expand_more / expand_less chars in buttons */
-    button[data-testid="stPopoverButton"] > div:last-child { display:none !important; }
     /* Tab scroll arrows hidden */
     [data-testid="stTabScrollDirectionButton"] { display:none !important; }
     div[data-baseweb="tab-list"] { overflow:hidden !important; }
     /* Smaller tab font to prevent overflow */
     button[data-baseweb="tab"] { font-size:0.75rem !important; padding:6px 10px !important; }
     button[data-baseweb="tab"] p { font-size:0.75rem !important; }
+    /* GEAR BUTTON — ghost style, no orange gradient */
+    .gear-btn > div > div > div > div > div > button {
+        background:transparent !important; border:1px solid #2E3F5C !important;
+        border-radius:8px !important; font-size:1.2rem !important;
+        padding:4px 8px !important; box-shadow:none !important;
+        color:#C9D0E0 !important; min-height:36px !important;
+    }
+    .gear-btn > div > div > div > div > div > button:hover {
+        background:#1E2A45 !important; box-shadow:none !important; transform:none !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -560,8 +566,10 @@ else:
     lang_activo_traducido = t["lang_name"].get(lang_activo_original, lang_activo_original)
     nivel_activo = u.get("niveles", {}).get(lang_activo_original, "A1")
 
-    # Header: greeting (left) + settings popover (right)
-    hdr_c1, hdr_c2 = st.columns([5, 1])
+    # Header: greeting (left) + settings toggle button (right)
+    if "settings_open" not in st.session_state:
+        st.session_state["settings_open"] = False
+    hdr_c1, hdr_c2 = st.columns([4, 2])
     with hdr_c1:
         _gh  = t["greeting"] + ", " + u["nombres"]
         _pl  = "Plan " + str(p) + " | " + lang_activo_traducido + " \u00b7 " + nivel_activo
@@ -572,18 +580,27 @@ else:
             unsafe_allow_html=True
         )
     with hdr_c2:
-        with st.popover("\u2699\ufe0f"):
-            st.write("**" + t["settings"] + "**")
+        if st.button(t["settings"], key="gear_btn", use_container_width=True):
+            st.session_state["settings_open"] = not st.session_state["settings_open"]
+    # Settings panel below header (toggle on gear click)
+    if st.session_state["settings_open"]:
+        st.markdown('<div style="background:#131929;border:1px solid #2E3F5C;border-radius:12px;padding:10px 14px;margin-bottom:6px;">', unsafe_allow_html=True)
+        sc1, sc2 = st.columns(2)
+        with sc1:
             if st.button(t["change_lang"], use_container_width=True, key="hdr_clang"):
                 st.session_state.idioma_activo = None
+                st.session_state["settings_open"] = False
                 if "lang_session" in st.query_params: del st.query_params["lang_session"]
                 st.rerun()
+        with sc2:
             if st.button(t["logout"], use_container_width=True, key="hdr_logout"):
                 st.session_state.usuario_db = None
                 st.session_state.idioma_activo = None
+                st.session_state["settings_open"] = False
                 if "user_session" in st.query_params: del st.query_params["user_session"]
                 if "lang_session" in st.query_params: del st.query_params["lang_session"]
                 st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
     # TABS — always 3, visible for all users (upgrade always shown)
     tab_train, tab_agent, tab_upgrade = st.tabs([
