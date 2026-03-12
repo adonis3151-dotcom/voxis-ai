@@ -166,14 +166,31 @@ st.markdown("""
     /* MISC */
     .divider-text { text-align:center; color:#7A84A0; margin:8px 0; font-size:0.85rem; }
     [data-testid="stColumn"] [data-testid="stMarkdownContainer"] p { word-break:break-word; overflow-wrap:break-word; white-space:normal; }
-    button[data-testid="stPopoverButton"] span:not(:first-child) { display:none !important; }
+    
+    /* FIX PARA EL BOTÓN DE AJUSTES (POPOVER ⚙️) */
+    button[data-testid="stPopoverButton"] {
+        background: #131929 !important; 
+        border: 1px solid #1E2A45 !important; 
+        border-radius: 10px !important; 
+        padding: 4px 12px !important; 
+        display: flex !important; 
+        justify-content: center !important; 
+        align-items: center !important;
+    }
+    button[data-testid="stPopoverButton"] p {
+        font-size: 1.4rem !important; 
+        margin: 0 !important; 
+        display: block !important; 
+    }
+    button[data-testid="stPopoverButton"] svg { 
+        display: none !important; /* Oculta solo la flecha nativa, manteniendo el engranaje */
+    }
+    
     /* Hide material icon text in expander/popover */
     .material-symbols-rounded { font-size:0 !important; width:0 !important; overflow:hidden !important; }
     /* Streamlit expander toggle arrow text */
     [data-testid="stExpander"] summary > div > div:first-child svg { display:none !important; }
     [data-testid="stExpander"] details > summary > div > div:first-child { display:none !important; }
-    /* Force hide expand_more / expand_less chars in buttons */
-    button[data-testid="stPopoverButton"] > div:last-child { display:none !important; }
     /* Tab scroll arrows hidden */
     [data-testid="stTabScrollDirectionButton"] { display:none !important; }
     div[data-baseweb="tab-list"] { overflow:hidden !important; }
