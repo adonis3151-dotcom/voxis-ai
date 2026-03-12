@@ -589,7 +589,7 @@ else:
             unsafe_allow_html=True
         )
     with hdr_c2:
-        with st.popover("\u2699\ufe0f"):
+        with st.popover("⚙️"):
             st.write("**" + t["settings"] + "**")
             if st.button(t["change_lang"], use_container_width=True, key="hdr_clang"):
                 st.session_state.idioma_activo = None
