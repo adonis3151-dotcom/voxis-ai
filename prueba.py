@@ -148,6 +148,64 @@ st.markdown("""
         word-break: break-word; overflow-wrap: break-word; white-space: normal;
     }
     [data-testid="stExpander"] { overflow: visible !important; }
+
+    /* Hide Streamlit expander arrow icon text (Material Icon fallback) */
+    [data-testid="stExpanderToggleIcon"] svg { display: none !important; }
+    [data-testid="stExpanderToggleIcon"] { display: none !important; }
+    details summary > div > div:first-child { 
+        width: 0 !important; overflow: hidden !important; font-size: 0 !important;
+    }
+    /* Audio recorder dark mode — force dark container */
+    iframe[title="audio_recorder.audio_recorder"] {
+        background: #0F1525 !important;
+        border-radius: 14px !important;
+        border: 1px solid #1E2A45 !important;
+        min-height: 80px !important;
+        display: block !important;
+        width: 100% !important;
+    }
+    [data-testid="stCustomComponentV1"] {
+        background: #0F1525 !important;
+        border-radius: 14px !important;
+        border: 1px solid #1E2A45 !important;
+        overflow: hidden !important;
+    }
+    /* Center the mic component */
+    .mic-hero-wrapper [data-testid="stCustomComponentV1"] {
+        max-width: 200px !important;
+        margin: 0 auto !important;
+    }
+
+    /* MIC GLOW SECTION */
+    .mic-glow-section { text-align:center; padding:16px 0 8px 0; }
+    .mic-label { font-size:1rem; color:#CBD5E0; margin-bottom:10px; }
+    .mic-glow-wrapper {
+        position:relative; width:180px; height:110px;
+        margin:0 auto; display:flex; align-items:center; justify-content:center;
+    }
+    .mic-glow-wrapper::before {
+        content:''; position:absolute;
+        width:130px; height:130px;
+        background:radial-gradient(circle,rgba(255,127,80,0.4) 0%,rgba(255,127,80,0.1) 55%,transparent 75%);
+        border-radius:50%;
+        animation:mic-pulse 2.5s ease-in-out infinite;
+        pointer-events:none; top:-10px; left:25px;
+    }
+    @keyframes mic-pulse {
+        0%,100%{ transform:scale(1); opacity:0.9; }
+        50%{ transform:scale(1.25); opacity:0.35; }
+    }
+    .mic-sublabel { font-size:0.85rem; color:#7A84A0; margin-top:6px; }
+    /* LESSON CARDS */
+    .lesson-card-active { background:#1E2A45; border-left:3px solid #FF7F50; border-radius:8px; padding:10px 14px; margin:4px 0; color:#FFFFFF; }
+    .lesson-card-done   { background:#111827; border-radius:8px; padding:10px 14px; margin:4px 0; color:#4A5568; }
+    .lesson-card-locked { background:#0F1525; border-radius:8px; padding:10px 14px; margin:4px 0; color:#2D3748; }
+    /* PLAN CARDS */
+    .plan-card-free { background:#111827; border:1px solid #374151; border-radius:14px; padding:16px 18px; margin:8px 0; }
+    .plan-card-std  { background:#1A2540; border:2px solid #FF7F50; border-radius:14px; padding:16px 18px; margin:8px 0; }
+    .plan-card-pro  { background:#1A2540; border:2px solid #FFB347; border-radius:14px; padding:16px 18px; margin:8px 0; }
+    /* SETTINGS POPOVER */
+    [data-testid="stPopover"] { float:right; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -519,7 +577,7 @@ else:
     correo_admin = st.secrets.get("ADMIN_EMAIL", "")
     es_admin = (u.get("correo") == correo_admin) and correo_admin != ""
 
-    p = "👑 ADMIN PRO" if es_admin else u.get("plan", "Free")
+    p = "\U0001f451 ADMIN PRO" if es_admin else u.get("plan", "Free")
     lim_f = 999999 if es_admin else (5 if p=="Free" else (20 if p=="Standard" else 100))
     lim_s = 30 if es_admin else (5 if p=="Free" else 10)
     lim_c = 1000 if es_admin else (200 if p=="Free" else 400)
@@ -527,68 +585,74 @@ else:
     lang_activo_original = st.session_state.idioma_activo
     lang_activo_traducido = t["lang_name"].get(lang_activo_original, lang_activo_original)
     nivel_activo = u.get("niveles", {}).get(lang_activo_original, "A1")
-    
-    # Encabezado centrado estilo app
-    _gh = t["greeting"] + ", " + u["nombres"]
-    _sep = " | "
-    _pl = "Plan " + str(p) + _sep + lang_activo_traducido + " · " + nivel_activo
-    _header = (
-        '<div style="text-align:center; padding: 10px 0 6px 0;">'
-        '<div style="font-size:1.9rem; font-weight:800; color:#FFFFFF; letter-spacing:-0.5px;">'
-        + _gh +
-        '</div>'
-        '<div style="font-size:0.85rem; color:#7A84A0; margin-top:2px;">'
-        + _pl +
-        '</div></div>'
-    )
-    st.markdown(_header, unsafe_allow_html=True)
-    with st.expander("⚙️ " + t["settings"]):
-        col_btn1, col_btn2 = st.columns(2)
-        with col_btn1:
-            if st.button(t["change_lang"], use_container_width=True):
+
+    # Header: greeting (left) + settings popover (right)
+    hdr_c1, hdr_c2 = st.columns([5, 1])
+    with hdr_c1:
+        _gh  = t["greeting"] + ", " + u["nombres"]
+        _pl  = "Plan " + str(p) + " | " + lang_activo_traducido + " \u00b7 " + nivel_activo
+        st.markdown(
+            '<div style="text-align:center; padding:4px 0 6px 0;">' +
+            '<div style="font-size:1.9rem; font-weight:800; color:#FFFFFF;">' + _gh + '</div>' +
+            '<div style="font-size:0.85rem; color:#7A84A0; margin-top:2px;">' + _pl + '</div></div>',
+            unsafe_allow_html=True
+        )
+    with hdr_c2:
+        with st.popover("\u2699\ufe0f"):
+            st.write("**" + t["settings"] + "**")
+            if st.button(t["change_lang"], use_container_width=True, key="hdr_clang"):
                 st.session_state.idioma_activo = None
                 if "lang_session" in st.query_params: del st.query_params["lang_session"]
                 st.rerun()
-        with col_btn2:
-            if st.button(t["logout"], use_container_width=True):
+            if st.button(t["logout"], use_container_width=True, key="hdr_logout"):
                 st.session_state.usuario_db = None
                 st.session_state.idioma_activo = None
                 if "user_session" in st.query_params: del st.query_params["user_session"]
                 if "lang_session" in st.query_params: del st.query_params["lang_session"]
                 st.rerun()
 
-    tabs_list = [t["tab_train"], t["tab_agent"]] if ("Pro" in p or es_admin) else [t["tab_train"], t["tab_agent"], t["tab_upgrade"]]
-    tabs = st.tabs(tabs_list)
-    tab_train, tab_agent = tabs[0], tabs[1]
-    tab_upgrade = tabs[2] if ("Pro" not in p and not es_admin) else None
+    # TABS — always 3, visible for all users (upgrade always shown)
+    tab_train, tab_agent, tab_upgrade = st.tabs([
+        t["tab_train"], t["tab_agent"], "\u2b50 " + t["tab_upgrade"]
+    ])
 
+    # ── TAB 1: ENTRENAMIENTO ──────────────────────────────────────────────────
     with tab_train:
-        # HERO: Micrófono centrado como protagonista principal
-        st.markdown(f'<div class="modern-card">', unsafe_allow_html=True)
-        
         lang_stt = IDIOMAS_APRENDER[lang_activo_original]["stt"]
         lang_tts = IDIOMAS_APRENDER[lang_activo_original]["tts"]
-        
-        if u["frases_usadas_hoy"] >= lim_f and not es_admin: 
+
+        if u["frases_usadas_hoy"] >= lim_f and not es_admin:
             st.error(t["limit_reached"])
         else:
-            st.markdown(f'<div class="mic-hero-wrapper">', unsafe_allow_html=True)
-            st.markdown(f'<div class="mic-label">🎙️ {t["record"]} <strong>{lang_activo_traducido}</strong></div>', unsafe_allow_html=True)
-            mic_container = st.empty()
-            with mic_container:
-                audio_bytes = audio_recorder(text="", icon_size="4x", key="hero_mic_main")
-            st.markdown(f'<div class="mic-sublabel">Max {lim_s}s &nbsp;·&nbsp; {t["hero_desc"]}</div><div class="mic-sublabel" style="font-size:0.7rem; opacity:0.6;">📱 En móvil: toca dos veces para activar</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            with st.expander(t['write'] + " " + lang_activo_traducido):
+            # MIC HERO with glow wrapper
+            mic_label_html = (
+                '<div class="mic-glow-section">' +
+                '<div class="mic-label">\U0001f399\ufe0f ' + t["record"] + ' <strong>' + lang_activo_traducido + '</strong></div>' +
+                '<div class="mic-glow-wrapper">'
+            )
+            st.markdown(mic_label_html, unsafe_allow_html=True)
+            audio_bytes = audio_recorder(
+                text="", icon_size="4x", key="hero_mic_main",
+                neutral_color="#FF7F50", recording_color="#FF4500", icon_color="#FFFFFF"
+            )
+            st.markdown(
+                '</div>' +
+                '<div class="mic-sublabel">Max ' + str(lim_s) + 's &nbsp;\u00b7&nbsp; ' + t["hero_desc"] + '</div>' +
+                '<div class="mic-sublabel" style="font-size:0.7rem;opacity:0.55;">\U0001f4f1 En m\u00f3vil: toca dos veces para activar</div>' +
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+            # Write alternative (expander)
+            with st.expander(t["write"] + " " + lang_activo_traducido):
                 with st.form("form_texto", clear_on_submit=False):
-                    texto_escrito = st.text_input("Escribe tu frase aquí:")
-                    submit_texto = st.form_submit_button(t["btn_send"])
-            
+                    texto_escrito = st.text_input("Escribe tu frase:")
+                    submit_texto  = st.form_submit_button(t["btn_send"])
+
             final_text = ""
             if submit_texto and texto_escrito:
                 if len(texto_escrito) > lim_c: st.error(t["err_char"].format(lim_c))
-                else: 
+                else:
                     final_text = texto_escrito
                     st.session_state.ultimo_audio = audio_bytes
             elif audio_bytes and audio_bytes != st.session_state.ultimo_audio and len(audio_bytes) > 1000:
@@ -600,117 +664,136 @@ else:
                             r.adjust_for_ambient_noise(source, duration=0.5)
                             audio = r.record(source, duration=lim_s)
                             final_text = r.recognize_google(audio, language=lang_stt)
-                            st.success(f"🎤: {final_text}")
+                            st.success("\U0001f3a4: " + final_text)
                     except: st.error(t["err_audio"])
 
             if final_text and final_text != st.session_state.ultima_frase:
-                with st.spinner(f"{t['analyzing']}..."):
+                with st.spinner(t["analyzing"] + "..."):
                     st.session_state.ultima_frase = final_text
                     res = procesar_con_gemini(final_text, lang_activo_original, idioma_nativo)
-                    
                     if "error" in res: st.warning(res["error"])
                     else:
                         st.write("---")
-                        st.metric(t["score"], f"{res.get('puntuacion', 'N/A')}/10")
-                        st.success(f"✅ {t['correction']} **{res.get('correccion', '')}**")
-                        st.info(f"🗣️ {t['pronunciation']} {res.get('pronunciacion', '')}")
-                        st.info(f"💡 {t['tip']} {res.get('tips', '')}")
+                        st.metric(t["score"], str(res.get("puntuacion", "N/A")) + "/10")
+                        st.success("\u2705 " + t["correction"] + " **" + str(res.get("correccion", "")) + "**")
+                        st.info("\U0001f5e3\ufe0f " + t["pronunciation"] + " " + str(res.get("pronunciacion", "")))
+                        st.info("\U0001f4a1 " + t["tip"] + " " + str(res.get("tips", "")))
                         try:
-                            tts = gTTS(text=res.get('correccion', ''), lang=lang_tts)
-                            tts.save("feedback.mp3")
-                            st.audio("feedback.mp3")
+                            tts = gTTS(text=res.get("correccion", ""), lang=lang_tts)
+                            tts.save("feedback.mp3"); st.audio("feedback.mp3")
                         except: pass
-                        
                         doc_ref = db.collection("usuarios").document(u["correo"])
                         doc_ref.update({"frases_usadas_hoy": firestore.Increment(1)})
                         st.session_state.usuario_db["frases_usadas_hoy"] += 1
-            elif final_text and final_text == st.session_state.ultima_frase: st.warning(t["repeat"])
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+            elif final_text and final_text == st.session_state.ultima_frase:
+                st.warning(t["repeat"])
 
-        # 2. CARD PROGRESS
-        st.markdown(f'<div class="modern-card">', unsafe_allow_html=True)
-        texto_contador = "∞" if es_admin else f"{st.session_state.usuario_db['frases_usadas_hoy']} / {lim_f}"
-        st.markdown(f"#### {t['progress']}")
-        st.progress(min(st.session_state.usuario_db['frases_usadas_hoy'] / lim_f, 1.0) if not es_admin else 1.0)
-        st.write(f"{texto_contador} {t['trainings']}")
-        st.markdown('</div>', unsafe_allow_html=True)
+        # Progress bottom bar
+        texto_contador = "\u221e" if es_admin else str(st.session_state.usuario_db["frases_usadas_hoy"]) + " / " + str(lim_f)
+        prog_val = min(st.session_state.usuario_db["frases_usadas_hoy"] / lim_f, 1.0) if not es_admin else 1.0
+        st.markdown('<div style="margin-top:20px;">', unsafe_allow_html=True)
+        st.progress(prog_val)
+        st.markdown(
+            '<div style="text-align:center;font-size:0.8rem;color:#7A84A0;margin-top:4px;">' +
+            texto_contador + " " + t["trainings"] + '</div></div>',
+            unsafe_allow_html=True
+        )
 
-
+    # ── TAB 2: RUTAS DE ESTUDIO ───────────────────────────────────────────────
     with tab_agent:
         st.markdown('<div class="modern-card">', unsafe_allow_html=True)
         modo_elegido = st.radio(t["choose_mode"], [t["mode_fund"], t["mode_real"]], horizontal=True)
         st.write("---")
-        
+
         TEMAS_FUNDAMENTOS = t["topics"]
-        progreso_key = f"progreso_{lang_activo_original}"
+        progreso_key  = "progreso_" + lang_activo_original
         leccion_actual = u.get(progreso_key, 0)
         es_fundamentos = (modo_elegido == t["mode_fund"])
-        
+
         if es_fundamentos:
             st.subheader(t["mode_fund"])
             st.write(t["mode_fund_desc"])
             if leccion_actual < len(TEMAS_FUNDAMENTOS):
                 tema_actual = TEMAS_FUNDAMENTOS[leccion_actual]
-                st.info(f"**{t['lesson_txt']} {leccion_actual + 1}/{len(TEMAS_FUNDAMENTOS)}:** {tema_actual}")
+                # Lesson cards
+                show_count = min(leccion_actual + 5, len(TEMAS_FUNDAMENTOS))
+                for i in range(show_count):
+                    tema = TEMAS_FUNDAMENTOS[i]
+                    lbl  = t["lesson_txt"] + " " + str(i+1) + "/" + str(len(TEMAS_FUNDAMENTOS)) + ": " + tema
+                    if i == leccion_actual:
+                        st.markdown('<div class="lesson-card-active">\U0001f513 ' + lbl + '</div>', unsafe_allow_html=True)
+                    elif i < leccion_actual:
+                        st.markdown('<div class="lesson-card-done">\u2705 ' + lbl + '</div>', unsafe_allow_html=True)
+                    else:
+                        st.markdown('<div class="lesson-card-locked">\U0001f512 ' + lbl + '</div>', unsafe_allow_html=True)
             else:
                 tema_actual = "Repaso General Avanzado"
-                st.success("🌟 Has completado todos los fundamentos.")
+                st.success("\U0001f31f Has completado todos los fundamentos.")
         else:
             st.subheader(t["mode_real"])
             st.write(t["mode_real_desc"])
             tema_actual = "Role-play conversacional"
-            
+
         if u["frases_usadas_hoy"] >= lim_f and not es_admin:
             st.error(t["limit_reached"])
         else:
-            sesion_reto_key = f"reto_{lang_activo_original}"
-            audio_reto_key = f"audio_reto_{lang_activo_original}"
-            
+            sesion_reto_key = "reto_" + lang_activo_original
+            audio_reto_key  = "audio_reto_" + lang_activo_original
             if sesion_reto_key not in st.session_state:
                 st.session_state[sesion_reto_key] = ""
-                st.session_state[audio_reto_key] = ""
-                
-            reto_activo = st.session_state.get(sesion_reto_key) != ""
+                st.session_state[audio_reto_key]  = ""
+
+            reto_activo   = st.session_state.get(sesion_reto_key) != ""
             ya_entreno_hoy = u["frases_usadas_hoy"] > 0
-            
+
             if not st.session_state.get("reto_superado"):
                 btn_texto = t["btn_next"] if (reto_activo or ya_entreno_hoy) else t["btn_gen_lesson"]
                 if st.button(btn_texto, use_container_width=True):
                     with st.spinner(t["prep_lesson"]):
                         if es_fundamentos:
-                            prompt_reto = f"Actúa como un tutor divertido. El usuario habla {idioma_nativo} y aprende {lang_activo_original}. Tema: '{tema_actual}'. Para mantener su atención, elige al azar UNA de estas dos mecánicas:\n1. 'Repetición': Enséñale 3 palabras del tema y pídele que pronuncie una en voz alta.\n2. 'Mini-Quiz': Hazle una pregunta rápida de opción múltiple (Ej. ¿Cómo se dice X? A) Y, B) Z, C) W) y pídele que responda PRONUNCIANDO la opción correcta en voz alta con su micrófono.\nREGLA ESTRICTA: NO uses etiquetas HTML. Usa comas o guiones. NUNCA le pidas que escriba, siempre pide HABLAR. Devuelve SOLO JSON: {{'leccion_texto': 'Mensaje divertido en {idioma_nativo} sin HTML', 'texto_audio': 'Escribe AQUÍ ÚNICAMENTE las palabras enseñadas en {lang_activo_original} separadas por comas, SIN repetirlas bajo ninguna circunstancia, y SIN agregar texto extra'}}"
+                            prompt_reto = (
+                                "Act\u00faa como un tutor divertido. El usuario habla " + idioma_nativo +
+                                " y aprende " + lang_activo_original + ". Tema: '" + tema_actual +
+                                "'. Elige al azar UNA mec\u00e1nica:\n"
+                                "1. 'Repetici\u00f3n': Ens\u00e9\u00f1ale 3 palabras y pide pronunciar una.\n"
+                                "2. 'Mini-Quiz': Pregunta de opci\u00f3n m\u00faltiple, pide pronunciar en voz alta.\n"
+                                "REGLA: NO HTML. Devuelve SOLO JSON: "
+                                "{{'leccion_texto': 'Mensaje en " + idioma_nativo + " sin HTML', "
+                                "'texto_audio': 'Solo palabras en " + lang_activo_original + " separadas por comas'}}"
+                            )
                         else:
-                            prompt_reto = f"El usuario habla {idioma_nativo} y practica {lang_activo_original}. Inventa un escenario de Role-play. REGLA ESTRICTA: NO uses etiquetas HTML. Devuelve SOLO JSON: {{'leccion_texto': 'Dile el contexto en {idioma_nativo} y hazle la primera pregunta en {lang_activo_original} sin HTML.', 'texto_audio': 'Solo la pregunta en {lang_activo_original}'}}"
+                            prompt_reto = (
+                                "El usuario habla " + idioma_nativo + " y practica " + lang_activo_original +
+                                ". Inventa un escenario de Role-play. NO HTML. "
+                                "Devuelve SOLO JSON: {{'leccion_texto': 'Contexto en " + idioma_nativo +
+                                " + primera pregunta en " + lang_activo_original + " sin HTML', "
+                                "'texto_audio': 'Solo la pregunta en " + lang_activo_original + "'}}"
+                            )
                         try:
                             client = genai.Client(api_key=API_KEY_FREE)
-                            res_reto = client.models.generate_content(model='gemini-3.1-flash-lite-preview', contents=prompt_reto)
-                            res_json = json.loads(res_reto.text.replace('```json\n', '').replace('```', '').strip())
-                            st.session_state[sesion_reto_key] = res_json.get('leccion_texto', 'Error cargando texto')
-                            st.session_state[audio_reto_key] = res_json.get('texto_audio', '')
+                            res_reto = client.models.generate_content(model="gemini-3.1-flash-lite-preview", contents=prompt_reto)
+                            res_json = json.loads(res_reto.text.replace("```json\n","").replace("```","").strip())
+                            st.session_state[sesion_reto_key] = res_json.get("leccion_texto","Error")
+                            st.session_state[audio_reto_key]  = res_json.get("texto_audio","")
                             st.rerun()
-                        except Exception as e:
-                            st.error("Servidores ocupados. Intenta de nuevo.")
+                        except: st.error("Servidores ocupados. Intenta de nuevo.")
 
             if st.session_state.get(sesion_reto_key):
-                st.markdown(f"> 🤖 **Agente IA:** {st.session_state[sesion_reto_key]}")
+                st.markdown("> \U0001f916 **Agente IA:** " + st.session_state[sesion_reto_key])
                 if st.session_state.get(audio_reto_key):
                     try:
-                        tts_reto = gTTS(text=st.session_state[audio_reto_key], lang=IDIOMAS_APRENDER[lang_activo_original]["tts"])
-                        tts_reto.save("lesson_audio.mp3")
-                        st.audio("lesson_audio.mp3")
+                        tts_r = gTTS(text=st.session_state[audio_reto_key], lang=IDIOMAS_APRENDER[lang_activo_original]["tts"])
+                        tts_r.save("lesson_audio.mp3"); st.audio("lesson_audio.mp3")
                     except: pass
-                
                 st.write("---")
-                col_m1, col_m2, col_m3 = st.columns([1, 1, 1])
+                col_m1, col_m2, col_m3 = st.columns([1,1,1])
                 with col_m2:
-                    audio_agent = audio_recorder(text="", icon_size="2x", key="mic_agent_main")
-                
+                    audio_agent = audio_recorder(text="", icon_size="2x", key="mic_agent_main",
+                                                 neutral_color="#FF7F50", recording_color="#FF4500", icon_color="#FFFFFF")
                 with st.expander(t["write"]):
                     with st.form("form_agent", clear_on_submit=False):
-                        texto_agent = st.text_input("Escribe aquí:", key="txt_agent")
+                        texto_agent  = st.text_input("Escribe:", key="txt_agent")
                         submit_agent = st.form_submit_button(t["btn_send"])
-                
                 final_agent = ""
                 if submit_agent and texto_agent: final_agent = texto_agent
                 elif audio_agent and audio_agent != st.session_state.get("ultimo_audio_agent") and len(audio_agent) > 1000:
@@ -721,34 +804,35 @@ else:
                             with sr.AudioFile(io.BytesIO(audio_agent)) as source:
                                 audio = r.record(source, duration=lim_s)
                                 final_agent = r.recognize_google(audio, language=IDIOMAS_APRENDER[lang_activo_original]["stt"])
-                                st.success(f"🎤: {final_agent}")
+                                st.success("\U0001f3a4: " + final_agent)
                         except: st.error(t["err_audio"])
-
                 if final_agent:
-                    with st.spinner(f"{t['analyzing']}..."):
-                        prompt_eval = f"Actúa como profesor de {lang_activo_original}. El usuario habla {idioma_nativo}. El reto era: '{st.session_state[sesion_reto_key]}'. El usuario respondió: '{final_agent}'. Evalúa si pronunció bien o si adivinó la respuesta correcta del Quiz. Devuelve SOLO JSON: {{'correccion': 'ESCRIBE AQUÍ SOLAMENTE LA FRASE CORREGIDA EN {lang_activo_original}. NADA EN {idioma_nativo}', 'pronunciacion': 'fonética en {idioma_nativo}', 'tips': 'Explica en {idioma_nativo} si logró el reto o acertó el quiz', 'puntuacion': '1-10'}}"
+                    with st.spinner(t["analyzing"] + "..."):
+                        prompt_eval = (
+                            "Actúa como profesor de " + lang_activo_original + ". El usuario habla " + idioma_nativo +
+                            ". El reto era: '" + st.session_state[sesion_reto_key] +
+                            "'. El usuario respondió: '" + final_agent +
+                            "'. Evalúa. Devuelve SOLO JSON: {'correccion': 'FRASE CORREGIDA EN " + lang_activo_original +
+                            "', 'pronunciacion': 'fonética en " + idioma_nativo +
+                            "', 'tips': 'Explica en " + idioma_nativo + " si logró el reto', 'puntuacion': '1-10'}"
+                        )
                         try:
-                            client = genai.Client(api_key=API_KEY_FREE)
-                            res_eval = client.models.generate_content(model='gemini-3.1-flash-lite-preview', contents=prompt_eval)
-                            res_json = json.loads(res_eval.text.replace('```json\n', '').replace('```', '').strip())
-                            
-                            st.metric(t["score"], f"{res_json.get('puntuacion', 'N/A')}/10")
-                            st.success(f"✅ {t['correction']} {res_json.get('correccion', '')}")
-                            st.info(f"🗣️ {t['pronunciation']} {res_json.get('pronunciacion', '')}")
-                            st.info(f"💡 {t['tip']} {res_json.get('tips', '')}")
+                            res_eval = genai.Client(api_key=API_KEY_FREE).models.generate_content(
+                                model="gemini-3.1-flash-lite-preview", contents=prompt_eval)
+                            res_json = json.loads(res_eval.text.replace("```json\n","").replace("```","").strip())
+                            st.metric(t["score"], str(res_json.get("puntuacion","N/A")) + "/10")
+                            st.success("\u2705 " + t["correction"] + " " + str(res_json.get("correccion","")))
+                            st.info("\U0001f5e3\ufe0f " + t["pronunciation"] + " " + str(res_json.get("pronunciacion","")))
+                            st.info("\U0001f4a1 " + t["tip"] + " " + str(res_json.get("tips","")))
                             try:
-                                tts = gTTS(text=res_json.get('correccion', ''), lang=IDIOMAS_APRENDER[lang_activo_original]["tts"])
-                                tts.save("feedback_agent.mp3")
-                                st.audio("feedback_agent.mp3")
+                                tts = gTTS(text=res_json.get("correccion",""), lang=IDIOMAS_APRENDER[lang_activo_original]["tts"])
+                                tts.save("feedback_agent.mp3"); st.audio("feedback_agent.mp3")
                             except: pass
-
                             doc_ref = db.collection("usuarios").document(u["correo"])
                             doc_ref.update({"frases_usadas_hoy": firestore.Increment(1)})
                             st.session_state.usuario_db["frases_usadas_hoy"] += 1
-
-                            try: puntos = int(str(res_json.get('puntuacion', '0')).replace('/10', '').strip())
+                            try: puntos = int(str(res_json.get("puntuacion","0")).replace("/10","").strip())
                             except: puntos = 5
-
                             if puntos >= 7:
                                 st.balloons()
                                 if es_fundamentos:
@@ -757,28 +841,38 @@ else:
                                     st.session_state.usuario_db[progreso_key] = leccion_actual + 1
                                 else: st.success(t["role_passed"])
                                 st.session_state.reto_superado = True
-
-                        except Exception as e: st.warning("Error evaluando. Intenta de nuevo.")
+                        except: st.warning("Error evaluando. Intenta de nuevo.")
 
             if st.session_state.get("reto_superado"):
                 if st.button(t["btn_next"], use_container_width=True, key="btn_continuar_reto"):
                     st.session_state[sesion_reto_key] = ""
-                    st.session_state[audio_reto_key] = ""
+                    st.session_state[audio_reto_key]  = ""
                     st.session_state.reto_superado = False
                     st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-    if tab_upgrade:
-        with tab_upgrade:
-            st.markdown('<div class="modern-card">', unsafe_allow_html=True)
-            st.subheader(t["up_title"])
-            st.write(t["up_sub"])
-            st.markdown(f"""
-            <div style="background-color: #E8F0FE; padding: 15px; border-radius: 8px; border-left: 5px solid #0047AB; margin-bottom: 20px;">
-                <h4 style="color: #0047AB; margin-top: 0;">{t['up_mkt_title']}</h4>
-                <p style="color: #333; font-size: 0.95rem; margin-bottom: 0;">{t['up_mkt_desc']}</p>
-            </div>
-            """, unsafe_allow_html=True)
-            st.info(f"✨ **{t['desc_standard']}**")
-            st.success(f"👑 **{t['desc_pro']}**")
-            st.markdown('</div>', unsafe_allow_html=True)
+    # ── TAB 3: MEJORAR PLAN (always visible) ─────────────────────────────────
+    with tab_upgrade:
+        _cur = "Free" if "Free" in str(p) else ("Standard" if "Standard" in str(p) else "Pro")
+        st.markdown(
+            '<div style="text-align:center;padding:16px 0 8px 0;">' +
+            '<div style="font-size:1.5rem;font-weight:800;color:#FFFFFF;">Desbloquea tu potencial \U0001f680</div>' +
+            '<div style="font-size:0.85rem;color:#7A84A0;margin-top:4px;">Elige el plan perfecto para ti</div></div>',
+            unsafe_allow_html=True
+        )
+        # FREE card
+        fb = '<span style="background:#374151;color:#9CA3AF;font-size:0.7rem;padding:2px 8px;border-radius:10px;float:right;">Plan actual</span>' if _cur=="Free" else ""
+        st.markdown('<div class="plan-card-free">' + fb + '<div style="font-weight:700;color:#9CA3AF;">\U0001f193 FREE — $0</div><div style="font-size:0.85rem;color:#6B7280;margin-top:4px;">5 frases/día · El punto de partida</div></div>', unsafe_allow_html=True)
+        # STANDARD card
+        sb = '<span style="background:#FF7F50;color:#FFF;font-size:0.7rem;padding:2px 8px;border-radius:10px;float:right;">\u2b50 M\u00c1S POPULAR</span>'
+        st.markdown('<div class="plan-card-std">' + sb + '<div style="font-size:1.1rem;font-weight:800;color:#FF7F50;">\u2728 STANDARD — $3/mes</div><div style="font-size:0.85rem;color:#CBD5E0;margin-top:4px;">20 frases/día · Todo lo del plan Free +</div></div>', unsafe_allow_html=True)
+        if _cur not in ("Standard","Pro"):
+            if st.button("Suscribirse por $3/mes \u2192", use_container_width=True, key="btn_std"):
+                st.info("(Pronto: pagos directos con Lemon Squeezy)")
+        # PRO card
+        pb = '<span style="background:linear-gradient(135deg,#FFD700,#FFA500);color:#000;font-size:0.7rem;padding:2px 8px;border-radius:10px;float:right;">\U0001f451 PREMIUM</span>'
+        st.markdown('<div class="plan-card-pro">' + pb + '<div style="font-size:1.1rem;font-weight:800;color:#FFB347;">\U0001f451 PRO — $8/mes</div><div style="font-size:0.85rem;color:#CBD5E0;margin-top:4px;">100 frases/día · M\u00e1xima velocidad e IA</div></div>', unsafe_allow_html=True)
+        if _cur != "Pro":
+            if st.button("Suscribirse por $8/mes \u2192", use_container_width=True, key="btn_pro"):
+                st.info("(Pronto: pagos directos con Lemon Squeezy)")
+        st.markdown('<div style="text-align:center;color:#4B5563;font-size:0.75rem;margin-top:12px;">\U0001f512 Pagos seguros · Cancela cuando quieras</div>', unsafe_allow_html=True)
