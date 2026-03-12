@@ -336,23 +336,17 @@ def get_base64_of_bin_file(bin_file):
     except:
         return None
 
-img_base64 = get_base64_of_bin_file("logo.png")
-if img_base64:
-    st.markdown(
-        f'<div style="text-align:center; padding: 10px 0 4px 0;">'
-        f'<div style="display:inline-block; background:#1A2540; border-radius:14px; padding:6px 12px;">'
-        f'<img src="data:image/png;base64,{img_base64}" height="44" style="height:44px; display:block;">'
-        f'</div></div>',
-        unsafe_allow_html=True
-    )
-else:
-    st.markdown(
-        '<div style="text-align:center; padding: 12px 0 4px 0;">'
-        '<span style="font-size:1.5rem; font-weight:700; color:#FFFFFF; letter-spacing:-0.5px;">'
-        '🔊 <span style="background:linear-gradient(135deg,#FF7F50,#FFB347);-webkit-background-clip:text;'
-        '-webkit-text-fill-color:transparent;background-clip:text;">Voxis AI</span></span></div>',
-        unsafe_allow_html=True
-    )
+# Siempre usar logo de texto (dark-mode friendly, no depende del PNG)
+st.markdown(
+    '<div style="text-align:center; padding: 14px 0 2px 0;">'
+    '<span style="font-size:1.6rem; font-weight:800; color:#FFFFFF; letter-spacing:-0.5px;">'
+    '🔊 <span style="background:linear-gradient(135deg,#FF7F50,#FFB347);'
+    '-webkit-background-clip:text;-webkit-text-fill-color:transparent;'
+    'background-clip:text;">Voxis AI</span></span><br>'
+    '<span style="font-size:0.75rem; color:#7A84A0; letter-spacing:1px; text-transform:uppercase;">'
+    'Your 24/7 AI Language Trainer</span></div>',
+    unsafe_allow_html=True
+)
 
 # Selector de idioma nativo
 opciones_ui = [f"🌐 {t['lang_name'][l]}" for l in UI_TEXT.keys()]
@@ -363,27 +357,25 @@ st.markdown("---") # Línea divisoria compacta
 
 # --- PANTALLA 1: LOGIN Y VERIFICACIÓN OTP ---
 if st.session_state.usuario_db is None:
-    # Manejar callback de Google OAuth
+    # Manejar callback de Google OAuth (sin validar state — sesión nueva en cada redirect)
     if "code" in st.query_params and st.session_state.usuario_db is None:
         code = st.query_params["code"]
-        returned_state = st.query_params.get("state", "")
-        if returned_state == st.session_state.get("oauth_state", ""):
-            with st.spinner("🔑 Verificando cuenta de Google..."):
-                google_user = exchange_google_code(code)
-                if google_user and "email" in google_user:
-                    correo_g = google_user["email"].strip().lower()
-                    nombre_g = google_user.get("given_name", correo_g.split("@")[0])
-                    apellido_g = google_user.get("family_name", "")
-                    datos, msg = iniciar_sesion(correo_g, nombre_g, apellido_g, "", t["desc_free"])
-                    st.session_state.usuario_db = datos
-                    for param in ["code", "state", "scope", "authuser", "prompt", "session_state"]:
-                        if param in st.query_params:
-                            del st.query_params[param]
-                    st.rerun()
-                else:
-                    st.error("❌ Error autenticando con Google. Intenta de nuevo.")
+        with st.spinner("🔑 Verificando cuenta de Google..."):
+            google_user = exchange_google_code(code)
+            if google_user and "email" in google_user:
+                correo_g = google_user["email"].strip().lower()
+                nombre_g = google_user.get("given_name", correo_g.split("@")[0])
+                apellido_g = google_user.get("family_name", "")
+                datos, msg = iniciar_sesion(correo_g, nombre_g, apellido_g, "", t["desc_free"])
+                st.session_state.usuario_db = datos
+                for param in ["code", "state", "scope", "authuser", "prompt", "session_state"]:
+                    if param in st.query_params:
+                        del st.query_params[param]
+                st.rerun()
+            else:
+                st.error("❌ Error autenticando con Google. Intenta de nuevo.")
 
-    st.markdown('<p class="slogan-text">Your 24/7 AI Language Trainer</p>', unsafe_allow_html=True)
+    # Slogan ya incluido en el header del logo
     if not st.session_state.otp_sent:
         # Botón de Google Sign-In
         if st.secrets.get("GOOGLE_CLIENT_ID", ""):
@@ -425,9 +417,13 @@ if st.session_state.usuario_db is None:
                             st.rerun()
                         else: st.error(t["email_error"])
                 else: st.error("⚠️ Completa los campos requeridos.")
-        st.markdown('<div style="margin-top: 16px;"></div>', unsafe_allow_html=True)
-        with st.expander(t["tc_title"]):
-            st.markdown(f'<div class="legal-text">{t["tc_text"]}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<details style="margin-top:18px; padding:10px 14px; background:#111827; border:1px solid #1E2A45; border-radius:10px;">'
+            f'<summary style="cursor:pointer; color:#7A84A0; font-size:0.85rem; list-style:none;">'
+            f'📜 {t["tc_title"]}</summary>'
+            f'<div class="legal-text" style="margin-top:8px;">{t["tc_text"]}</div></details>',
+            unsafe_allow_html=True
+        )
     else:
         st.info(t["otp_sent_msg"].format(st.session_state.temp_data["correo"]))
         with st.form("form_otp"):
