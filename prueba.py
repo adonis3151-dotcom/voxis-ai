@@ -177,14 +177,36 @@ st.markdown("""
     button[data-baseweb="tab"] { font-size:0.75rem !important; padding:6px 10px !important; }
     button[data-baseweb="tab"] p { font-size:0.75rem !important; }
     /* GEAR BUTTON — ghost style, no orange gradient */
+    .gear-btn button,
+    .gear-btn > div > button,
+    .gear-btn > div > div > button,
+    .gear-btn > div > div > div > button,
+    .gear-btn > div > div > div > div > button,
     .gear-btn > div > div > div > div > div > button {
-        background:transparent !important; border:1px solid #2E3F5C !important;
-        border-radius:8px !important; font-size:1.2rem !important;
-        padding:4px 8px !important; box-shadow:none !important;
-        color:#C9D0E0 !important; min-height:36px !important;
+        background:transparent !important;
+        background-image:none !important;
+        border:none !important;
+        box-shadow:none !important;
+        color:#C9D0E0 !important;
+        font-size:0.88rem !important;
+        font-weight:500 !important;
+        padding:4px 8px !important;
+        min-height:auto !important;
+        opacity:0.85;
+        transition:opacity 0.2s ease !important;
     }
+    .gear-btn button:hover,
+    .gear-btn > div > button:hover,
+    .gear-btn > div > div > button:hover,
+    .gear-btn > div > div > div > button:hover,
+    .gear-btn > div > div > div > div > button:hover,
     .gear-btn > div > div > div > div > div > button:hover {
-        background:#1E2A45 !important; box-shadow:none !important; transform:none !important;
+        background:transparent !important;
+        background-image:none !important;
+        box-shadow:none !important;
+        transform:none !important;
+        opacity:1 !important;
+        color:#FFFFFF !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -582,8 +604,10 @@ else:
             unsafe_allow_html=True
         )
     with hdr_c2:
+        st.markdown('<div class="gear-btn">', unsafe_allow_html=True)
         if st.button(t["settings"], key="gear_btn", use_container_width=True):
             st.session_state["settings_open"] = not st.session_state["settings_open"]
+        st.markdown('</div>', unsafe_allow_html=True)
     # Settings panel below header (toggle on gear click)
     if st.session_state["settings_open"]:
         st.markdown('<div style="background:#131929;border:1px solid #2E3F5C;border-radius:12px;padding:10px 14px;margin-bottom:6px;">', unsafe_allow_html=True)
