@@ -176,13 +176,11 @@ st.markdown("""
     /* Smaller tab font to prevent overflow */
     button[data-baseweb="tab"] { font-size:0.75rem !important; padding:6px 10px !important; }
     button[data-baseweb="tab"] p { font-size:0.75rem !important; }
-    /* GEAR BUTTON — ghost style, no orange gradient */
-    .gear-btn button,
-    .gear-btn > div > button,
-    .gear-btn > div > div > button,
-    .gear-btn > div > div > div > button,
-    .gear-btn > div > div > div > div > button,
-    .gear-btn > div > div > div > div > div > button {
+    /* GEAR BUTTON — ghost style via :has() selector (works for Streamlit siblings) */
+    [data-testid="column"]:has(.gear-btn) .stButton > button,
+    [data-testid="stColumn"]:has(.gear-btn) .stButton > button,
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.gear-btn) .stButton > button,
+    [data-testid="stVerticalBlock"]:has(.gear-btn) .stButton > button {
         background:transparent !important;
         background-image:none !important;
         border:none !important;
@@ -190,17 +188,15 @@ st.markdown("""
         color:#C9D0E0 !important;
         font-size:0.88rem !important;
         font-weight:500 !important;
-        padding:4px 8px !important;
+        padding:4px 12px !important;
         min-height:auto !important;
         opacity:0.85;
-        transition:opacity 0.2s ease !important;
+        transition:opacity 0.2s ease, color 0.2s ease !important;
     }
-    .gear-btn button:hover,
-    .gear-btn > div > button:hover,
-    .gear-btn > div > div > button:hover,
-    .gear-btn > div > div > div > button:hover,
-    .gear-btn > div > div > div > div > button:hover,
-    .gear-btn > div > div > div > div > div > button:hover {
+    [data-testid="column"]:has(.gear-btn) .stButton > button:hover,
+    [data-testid="stColumn"]:has(.gear-btn) .stButton > button:hover,
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.gear-btn) .stButton > button:hover,
+    [data-testid="stVerticalBlock"]:has(.gear-btn) .stButton > button:hover {
         background:transparent !important;
         background-image:none !important;
         box-shadow:none !important;
