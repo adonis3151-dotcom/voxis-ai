@@ -559,8 +559,10 @@ else:
 
     p = "\U0001f451 ADMIN PRO" if es_admin else u.get("plan", "Free")
     lim_f = 999999 if es_admin else (5 if p=="Free" else (20 if p=="Standard" else 100))
-    lim_s = 30 if es_admin else (5 if p=="Free" else 10)
+    lim_s = 10 if not es_admin else 30   # Free=5s handled below; Standard/Pro/Admin capped
+    if not es_admin and p == "Free": lim_s = 5
     lim_c = 1000 if es_admin else (200 if p=="Free" else 400)
+    MAX_AUDIO_BYTES = 700_000  # ~15s of WAV audio — hard reject above this
 
     lang_activo_original = st.session_state.idioma_activo
     lang_activo_traducido = t["lang_name"].get(lang_activo_original, lang_activo_original)
@@ -632,16 +634,19 @@ else:
 
             final_text = ""
             if audio_bytes and audio_bytes != st.session_state.ultimo_audio and len(audio_bytes) > 1000:
-                st.session_state.ultimo_audio = audio_bytes
-                with st.spinner(t["listening"]):
-                    try:
-                        r = sr.Recognizer()
-                        with sr.AudioFile(io.BytesIO(audio_bytes)) as source:
-                            r.adjust_for_ambient_noise(source, duration=0.5)
-                            audio = r.record(source, duration=lim_s)
-                            final_text = r.recognize_google(audio, language=lang_stt)
-                            st.success("\U0001f3a4: " + final_text)
-                    except: st.error(t["err_audio"])
+                if len(audio_bytes) > MAX_AUDIO_BYTES:
+                    st.warning("⚠️ Audio demasiado largo. Máximo " + str(lim_s) + " segundos.")
+                else:
+                    st.session_state.ultimo_audio = audio_bytes
+                    with st.spinner(t["listening"]):
+                        try:
+                            r = sr.Recognizer()
+                            with sr.AudioFile(io.BytesIO(audio_bytes)) as source:
+                                r.adjust_for_ambient_noise(source, duration=0.5)
+                                audio = r.record(source, duration=lim_s)
+                                final_text = r.recognize_google(audio, language=lang_stt)
+                                st.success("\U0001f3a4: " + final_text)
+                        except: st.error(t["err_audio"])
 
             if final_text and final_text != st.session_state.ultima_frase:
                 with st.spinner(t["analyzing"] + "..."):
@@ -767,15 +772,18 @@ else:
                     audio_agent = audio_recorder(text="", icon_size="2x", key="mic_agent_main")
                 final_agent = ""
                 if audio_agent and audio_agent != st.session_state.get("ultimo_audio_agent") and len(audio_agent) > 1000:
-                    st.session_state["ultimo_audio_agent"] = audio_agent
-                    with st.spinner(t["listening"]):
-                        try:
-                            r = sr.Recognizer()
-                            with sr.AudioFile(io.BytesIO(audio_agent)) as source:
-                                audio = r.record(source, duration=lim_s)
-                                final_agent = r.recognize_google(audio, language=IDIOMAS_APRENDER[lang_activo_original]["stt"])
-                                st.success("\U0001f3a4: " + final_agent)
-                        except: st.error(t["err_audio"])
+                    if len(audio_agent) > MAX_AUDIO_BYTES:
+                        st.warning("⚠️ Audio demasiado largo. Máximo " + str(lim_s) + " segundos.")
+                    else:
+                        st.session_state["ultimo_audio_agent"] = audio_agent
+                        with st.spinner(t["listening"]):
+                            try:
+                                r = sr.Recognizer()
+                                with sr.AudioFile(io.BytesIO(audio_agent)) as source:
+                                    audio = r.record(source, duration=lim_s)
+                                    final_agent = r.recognize_google(audio, language=IDIOMAS_APRENDER[lang_activo_original]["stt"])
+                                    st.success("\U0001f3a4: " + final_agent)
+                            except: st.error(t["err_audio"])
                 if final_agent:
                     with st.spinner(t["analyzing"] + "..."):
                         prompt_eval = (
