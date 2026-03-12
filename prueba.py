@@ -447,10 +447,6 @@ if st.session_state.usuario_db is None:
                 if str(pin_usuario).strip() == str(st.session_state.otp_code).strip():
                     d = st.session_state.temp_data
                     datos, msg = iniciar_sesion(d["correo"], d["nombres"], d["apellidos"], d["whatsapp"], d["plan"])
-                    st.session_state.usuario_db = datos
-                    st.session_state.otp_sent = False
-                    st.rerun()
-                else: st.error(t["otp_error"])
         if st.button(t["btn_cancel"], use_container_width=True):
             st.session_state.otp_sent = False
             st.rerun()
@@ -532,15 +528,20 @@ else:
     lang_activo_traducido = t["lang_name"].get(lang_activo_original, lang_activo_original)
     nivel_activo = u.get("niveles", {}).get(lang_activo_original, "A1")
     
-    # Encabezado centrado estilo app — coincide con mockup
-    st.markdown(
-        f'<div style="text-align:center; padding: 10px 0 6px 0;">\'
-        f'<div style="font-size:1.9rem; font-weight:800; color:#FFFFFF; letter-spacing:-0.5px;">\'
-        f'{t["greeting"]}, {u["nombres"]}</div>\'
-        f'<div style="font-size:0.85rem; color:#7A84A0; margin-top:2px;">\'
-        f'Plan {p}&nbsp;|&nbsp;{lang_activo_traducido}&nbsp;·&nbsp;{nivel_activo}</div></div>',
-        unsafe_allow_html=True
+    # Encabezado centrado estilo app
+    _gh = t["greeting"] + ", " + u["nombres"]
+    _sep = " | "
+    _pl = "Plan " + str(p) + _sep + lang_activo_traducido + " · " + nivel_activo
+    _header = (
+        '<div style="text-align:center; padding: 10px 0 6px 0;">'
+        '<div style="font-size:1.9rem; font-weight:800; color:#FFFFFF; letter-spacing:-0.5px;">'
+        + _gh +
+        '</div>'
+        '<div style="font-size:0.85rem; color:#7A84A0; margin-top:2px;">'
+        + _pl +
+        '</div></div>'
     )
+    st.markdown(_header, unsafe_allow_html=True)
     with st.expander("⚙️ " + t["settings"]):
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
