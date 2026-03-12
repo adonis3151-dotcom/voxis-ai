@@ -175,7 +175,9 @@ st.markdown("""
     [data-testid="stExpander"] details > summary > div > div:first-child { display:none !important; }
     /* Force hide expand_more / expand_less chars in buttons */
     button[data-testid="stPopoverButton"] > div:last-child { display:none !important; }
-    button[data-testid="stPopoverButton"] { overflow:hidden !important; max-width:46px !important; min-width:0 !important; padding:4px 8px !important; border-radius:8px !important; }
+    /* Tab scroll arrows hidden */
+    [data-testid="stTabScrollDirectionButton"] { display:none !important; }
+    div[data-baseweb="tab-list"] { overflow:hidden !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -609,18 +611,8 @@ else:
                 unsafe_allow_html=True
             )
 
-            # Write alternative (expander)
-            with st.form("form_texto", clear_on_submit=False):
-                texto_escrito = st.text_input(t["write"] + " " + lang_activo_traducido + ":")
-                submit_texto  = st.form_submit_button(t["btn_send"])
-
             final_text = ""
-            if submit_texto and texto_escrito:
-                if len(texto_escrito) > lim_c: st.error(t["err_char"].format(lim_c))
-                else:
-                    final_text = texto_escrito
-                    st.session_state.ultimo_audio = audio_bytes
-            elif audio_bytes and audio_bytes != st.session_state.ultimo_audio and len(audio_bytes) > 1000:
+            if audio_bytes and audio_bytes != st.session_state.ultimo_audio and len(audio_bytes) > 1000:
                 st.session_state.ultimo_audio = audio_bytes
                 with st.spinner(t["listening"]):
                     try:
@@ -754,13 +746,8 @@ else:
                 col_m1, col_m2, col_m3 = st.columns([1,1,1])
                 with col_m2:
                     audio_agent = audio_recorder(text="", icon_size="2x", key="mic_agent_main")
-                with st.expander(t["write"]):
-                    with st.form("form_agent", clear_on_submit=False):
-                        texto_agent  = st.text_input("Escribe:", key="txt_agent")
-                        submit_agent = st.form_submit_button(t["btn_send"])
                 final_agent = ""
-                if submit_agent and texto_agent: final_agent = texto_agent
-                elif audio_agent and audio_agent != st.session_state.get("ultimo_audio_agent") and len(audio_agent) > 1000:
+                if audio_agent and audio_agent != st.session_state.get("ultimo_audio_agent") and len(audio_agent) > 1000:
                     st.session_state["ultimo_audio_agent"] = audio_agent
                     with st.spinner(t["listening"]):
                         try:
@@ -829,6 +816,13 @@ else:
             '<div style="text-align:center;padding:16px 0 8px 0;">' +
             '<div style="font-size:1.5rem;font-weight:800;color:#FFFFFF;">' + t["up_title"] + '</div>' +
             '<div style="font-size:0.85rem;color:#7A84A0;margin-top:4px;">' + _up_tagline + '</div></div>',
+            unsafe_allow_html=True
+        )
+        # Marketing card
+        st.markdown(
+            '<div style="background:#1A2235;border:1px solid #2E3F5C;border-radius:14px;padding:16px 18px;margin:10px 0 6px 0;">' +
+            '<div style="font-size:1.05rem;font-weight:700;color:#FFFFFF;margin-bottom:6px;">' + t.get("up_mkt_title", "\U0001f680 M\u00e1xima Velocidad e Inteligencia") + '</div>' +
+            '<div style="font-size:0.82rem;color:#9CA3AF;line-height:1.5;">' + t.get("up_mkt_desc", "Al subir a un nivel de paga, tu cuenta se migra a servidores dedicados.") + '</div></div>',
             unsafe_allow_html=True
         )
         fb = '<span style="background:#374151;color:#9CA3AF;font-size:0.7rem;padding:2px 8px;border-radius:10px;float:right;">' + _up_cur_badge + '</span>' if _cur=="Free" else ""
