@@ -143,6 +143,11 @@ st.markdown("""
     [data-baseweb="option"] { background-color: #1E2A45 !important; color: #E8EAF0 !important; }
     [data-baseweb="menu"] { background-color: #1E2A45 !important; }
     .divider-text { text-align:center; color:#7A84A0; margin: 8px 0; font-size:0.85rem; }
+    /* TOPIC CARDS — fundamentos grid overflow fix */
+    [data-testid="stColumn"] [data-testid="stMarkdownContainer"] p { 
+        word-break: break-word; overflow-wrap: break-word; white-space: normal;
+    }
+    [data-testid="stExpander"] { overflow: visible !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -527,18 +532,23 @@ else:
     lang_activo_traducido = t["lang_name"].get(lang_activo_original, lang_activo_original)
     nivel_activo = u.get("niveles", {}).get(lang_activo_original, "A1")
     
-    # Encabezado del Dashboard con Menú de Ajustes ⚙️ (Sin espacios muertos)
-    dash_col1, dash_col2 = st.columns([4, 1])
-    with dash_col1:
-        st.markdown(f"<h2>{t['greeting']}, {u['nombres']}</h2>", unsafe_allow_html=True)
-        st.caption(f"{t['plan_label']}: **{p}** | {lang_activo_traducido}: **{nivel_activo}**")
-    with dash_col2:
-        with st.popover(t["settings"]):
-            st.write(f"**{t['settings']}**")
+    # Encabezado centrado estilo app — coincide con mockup
+    st.markdown(
+        f'<div style="text-align:center; padding: 10px 0 6px 0;">\'
+        f'<div style="font-size:1.9rem; font-weight:800; color:#FFFFFF; letter-spacing:-0.5px;">\'
+        f'{t["greeting"]}, {u["nombres"]}</div>\'
+        f'<div style="font-size:0.85rem; color:#7A84A0; margin-top:2px;">\'
+        f'Plan {p}&nbsp;|&nbsp;{lang_activo_traducido}&nbsp;·&nbsp;{nivel_activo}</div></div>',
+        unsafe_allow_html=True
+    )
+    with st.expander("⚙️ " + t["settings"]):
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
             if st.button(t["change_lang"], use_container_width=True):
                 st.session_state.idioma_activo = None
                 if "lang_session" in st.query_params: del st.query_params["lang_session"]
                 st.rerun()
+        with col_btn2:
             if st.button(t["logout"], use_container_width=True):
                 st.session_state.usuario_db = None
                 st.session_state.idioma_activo = None
@@ -566,7 +576,7 @@ else:
             mic_container = st.empty()
             with mic_container:
                 audio_bytes = audio_recorder(text="", icon_size="4x", key="hero_mic_main")
-            st.markdown(f'<div class="mic-sublabel">Max {lim_s}s — {t["hero_desc"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="mic-sublabel">Max {lim_s}s &nbsp;·&nbsp; {t["hero_desc"]}</div><div class="mic-sublabel" style="font-size:0.7rem; opacity:0.6;">📱 En móvil: toca dos veces para activar</div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
             
             with st.expander(t['write'] + " " + lang_activo_traducido):
