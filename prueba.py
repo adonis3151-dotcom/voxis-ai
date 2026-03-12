@@ -173,10 +173,8 @@ st.markdown("""
     /* Tab scroll arrows hidden */
     [data-testid="stTabScrollDirectionButton"] { display:none !important; }
     div[data-baseweb="tab-list"] { overflow:hidden !important; }
-    /* GEAR BUTTON — ghost style via adjacent sibling selector */
-    div[data-testid="stMarkdownContainer"]:has(.gear-btn) { display: none; } /* Hide the empty marker container */
-    div[data-testid="element-container"]:has(.gear-btn) + div[data-testid="element-container"] button,
-    div:has(> div > div > .gear-btn) + div button {
+    /* GEAR BUTTON — ghost style targeting specifically the header's right column button */
+    [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-of-type(2) .stButton > button {
         background:transparent !important;
         background-image:none !important;
         border:none !important;
@@ -188,9 +186,9 @@ st.markdown("""
         min-height:auto !important;
         opacity:0.85;
         transition:opacity 0.2s ease, color 0.2s ease !important;
+        width: 100% !important;
     }
-    div[data-testid="element-container"]:has(.gear-btn) + div[data-testid="element-container"] button:hover,
-    div:has(> div > div > .gear-btn) + div button:hover {
+    [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-of-type(2) .stButton > button:hover {
         background:transparent !important;
         background-image:none !important;
         box-shadow:none !important;
