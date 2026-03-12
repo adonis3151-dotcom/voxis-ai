@@ -173,14 +173,10 @@ st.markdown("""
     /* Tab scroll arrows hidden */
     [data-testid="stTabScrollDirectionButton"] { display:none !important; }
     div[data-baseweb="tab-list"] { overflow:hidden !important; }
-    /* Smaller tab font to prevent overflow */
-    button[data-baseweb="tab"] { font-size:0.75rem !important; padding:6px 10px !important; }
-    button[data-baseweb="tab"] p { font-size:0.75rem !important; }
-    /* GEAR BUTTON — ghost style via :has() selector (works for Streamlit siblings) */
-    [data-testid="column"]:has(.gear-btn) .stButton > button,
-    [data-testid="stColumn"]:has(.gear-btn) .stButton > button,
-    [data-testid="stVerticalBlockBorderWrapper"]:has(.gear-btn) .stButton > button,
-    [data-testid="stVerticalBlock"]:has(.gear-btn) .stButton > button {
+    /* GEAR BUTTON — ghost style via adjacent sibling selector */
+    div[data-testid="stMarkdownContainer"]:has(.gear-btn) { display: none; } /* Hide the empty marker container */
+    div[data-testid="element-container"]:has(.gear-btn) + div[data-testid="element-container"] button,
+    div:has(> div > div > .gear-btn) + div button {
         background:transparent !important;
         background-image:none !important;
         border:none !important;
@@ -193,10 +189,8 @@ st.markdown("""
         opacity:0.85;
         transition:opacity 0.2s ease, color 0.2s ease !important;
     }
-    [data-testid="column"]:has(.gear-btn) .stButton > button:hover,
-    [data-testid="stColumn"]:has(.gear-btn) .stButton > button:hover,
-    [data-testid="stVerticalBlockBorderWrapper"]:has(.gear-btn) .stButton > button:hover,
-    [data-testid="stVerticalBlock"]:has(.gear-btn) .stButton > button:hover {
+    div[data-testid="element-container"]:has(.gear-btn) + div[data-testid="element-container"] button:hover,
+    div:has(> div > div > .gear-btn) + div button:hover {
         background:transparent !important;
         background-image:none !important;
         box-shadow:none !important;
