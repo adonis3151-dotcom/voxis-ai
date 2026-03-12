@@ -5,11 +5,9 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from datetime import date
 import json
-import time
 import io
 import smtplib
 from email.mime.text import MIMEText
-import random
 import secrets as secrets_module
 import urllib.parse
 import requests
@@ -173,28 +171,21 @@ st.markdown("""
     /* Tab scroll arrows hidden */
     [data-testid="stTabScrollDirectionButton"] { display:none !important; }
     div[data-baseweb="tab-list"] { overflow:hidden !important; }
-    /* GEAR BUTTON — ghost style targeting specifically the header's right column button */
-    [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-of-type(2) .stButton > button {
-        background:transparent !important;
-        background-image:none !important;
-        border:none !important;
-        box-shadow:none !important;
+    /* Smaller tab font to prevent overflow */
+    button[data-baseweb="tab"] { font-size:0.75rem !important; padding:6px 10px !important; }
+    button[data-baseweb="tab"] p { font-size:0.75rem !important; }
+    /* AJUSTES BUTTON — tertiary type = transparent by default, just set color */
+    [data-testid="stBaseButton-tertiary"] {
         color:#C9D0E0 !important;
-        font-size:0.88rem !important;
-        font-weight:500 !important;
-        padding:4px 12px !important;
-        min-height:auto !important;
         opacity:0.85;
         transition:opacity 0.2s ease, color 0.2s ease !important;
-        width: 100% !important;
     }
-    [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-of-type(2) .stButton > button:hover {
+    [data-testid="stBaseButton-tertiary"]:hover {
         background:transparent !important;
-        background-image:none !important;
+        color:#FFFFFF !important;
+        opacity:1 !important;
         box-shadow:none !important;
         transform:none !important;
-        opacity:1 !important;
-        color:#FFFFFF !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -592,10 +583,8 @@ else:
             unsafe_allow_html=True
         )
     with hdr_c2:
-        st.markdown('<div class="gear-btn">', unsafe_allow_html=True)
-        if st.button(t["settings"], key="gear_btn", use_container_width=True):
+        if st.button(t["settings"], key="gear_btn", use_container_width=True, type="tertiary"):
             st.session_state["settings_open"] = not st.session_state["settings_open"]
-        st.markdown('</div>', unsafe_allow_html=True)
     # Settings panel below header (toggle on gear click)
     if st.session_state["settings_open"]:
         st.markdown('<div style="background:#131929;border:1px solid #2E3F5C;border-radius:12px;padding:10px 14px;margin-bottom:6px;">', unsafe_allow_html=True)
