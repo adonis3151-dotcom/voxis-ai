@@ -1191,17 +1191,15 @@
         </div>
         <div class="subsection-title" id="subsection-fund">🧱 Fundamentos</div>
         <div class="level-list">
-          <div class="level-card unlocked">
+          <div class="level-card unlocked" onclick="window._currentLevelTitle='Nivel 1/20:'; window._currentLevelTopic='Saludos'; document.getElementById('btn-challenge').scrollIntoView({behavior:'smooth'})">
             <div class="level-card-num" id="lv1-num">Nivel 1/20:</div>
             <div class="level-card-name" id="lv1-name">Saludos</div>
           </div>
-          <div class="level-card locked">
-            <span class="level-lock">🔒</span>
+          <div class="level-card unlocked" onclick="window._currentLevelTitle='Nivel 2/20:'; window._currentLevelTopic='Números'; document.getElementById('btn-challenge').scrollIntoView({behavior:'smooth'})">
             <div class="level-card-num" id="lv2-num">Nivel 2/20:</div>
             <div class="level-card-name" id="lv2-name">Números</div>
           </div>
-          <div class="level-card locked">
-            <span class="level-lock">🔒</span>
+          <div class="level-card unlocked" onclick="window._currentLevelTitle='Nivel 3/20:'; window._currentLevelTopic='Colores'; document.getElementById('btn-challenge').scrollIntoView({behavior:'smooth'})">
             <div class="level-card-num" id="lv3-num">Nivel 3/20:</div>
             <div class="level-card-name" id="lv3-name">Colores</div>
           </div>
@@ -1619,8 +1617,13 @@
       loginOverlay.style.display      = 'none';
       otpOverlay.style.display        = 'none';
       onboardingOverlay.style.display = 'none';
-      // Use the greeting word from the current interface language (Regla #1)
-      const greetWord = (I18N[currentLang] && I18N[currentLang].greeting) ? I18N[currentLang].greeting : 'Hola';
+      
+      // Update greeting translation based on currentLang
+      const GREETINGS = {
+        es: 'Hola', en: 'Hello', fr: 'Bonjour', de: 'Hallo', it: 'Ciao', 
+        pt: 'Olá', zh: '你好', ja: 'こんにちは', ko: '안녕하세요', ru: 'Привет'
+      };
+      const greetWord = GREETINGS[currentLang] || 'Hola';
       if (greetingName) greetingName.textContent = greetWord + ', ' + firstName;
 
       const targetLangCode = localStorage.getItem('voxis_target_lang') || 'en';
@@ -2305,6 +2308,22 @@
     const disp = document.getElementById('lang-display');
     if (sel && disp) disp.textContent = sel.options[sel.selectedIndex].text;
 
+    // Update greeting dynamically
+    const greetingEl = document.getElementById('greeting-name');
+    if (greetingEl) {
+      const GREETINGS = {
+        es: 'Hola', en: 'Hello', fr: 'Bonjour', de: 'Hallo', it: 'Ciao', 
+        pt: 'Olá', zh: '你好', ja: 'こんにちは', ko: '안녕하세요', ru: 'Привет'
+      };
+      const greetWord = GREETINGS[code] || 'Hola';
+      const currentText = greetingEl.textContent; // e.g., "Hola, Master"
+      const commaIndex = currentText.indexOf(',');
+      if (commaIndex !== -1) {
+        const namePart = currentText.substring(commaIndex); // e.g., ", Master"
+        greetingEl.textContent = greetWord + namePart;
+      }
+    }
+
     // ── TABS ──
     document.getElementById('tab-train').textContent   = t.tab_train;
     document.getElementById('tab-routes').textContent  = t.tab_routes;
@@ -2725,11 +2744,10 @@
       'it': 'it-IT', 'pt': 'pt-BR', 'zh': 'zh-CN', 'ja': 'ja-JP',
       'ko': 'ko-KR', 'ru': 'ru-RU'
     };
-    const topics = ['Saludos','Pronombres','Verbos básicos','Números','Colores','Comida','Familia',
-      'Días y Meses','Ropa','Cuerpo','Animales','Profesiones','Clima','Hogar','Emociones',
-      'Verbos de acción','Transporte','Ciudad','La Hora','Rutina'];
+    
+    // ── FIXED: Use the specific level user clicked instead of random ──
     const tema = currentMode === 'fund'
-      ? (topics[Math.floor(Math.random() * topics.length)])
+      ? (window._currentLevelTopic || 'Saludos') // Default to Saludos
       : 'Situación de la vida real';
 
     challengeAudioLang = ttsLangMap[targetLangCode] || 'en-US';
@@ -2766,7 +2784,32 @@
       const data = await resp.json();
       if (data.error) throw new Error(data.error);
 
-      document.getElementById('challenge-text').innerHTML = data.reto.replace(/\n/g, '<br>');
+      if (currentMode === 'fund') {
+        const langName = langNames[targetLangCode] || 'Inglés';
+        // Extract the phrase from the strict JSON format: "¿Cómo se dice en Inglés: 'X'?"
+        const rawReto = data.reto || '';
+        let phraseToTranslate = rawReto;
+        if (rawReto.includes("'")) {
+            phraseToTranslate = rawReto.split("'")[1] || rawReto;
+        }
+        
+        document.getElementById('challenge-text').innerHTML = `
+          <div style="text-align:center; padding: 10px 0;">
+            <div style="font-size:0.9rem; color:#7A84A0; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">
+               Traducción requerida
+            </div>
+            <div style="color:#C9D0E0; font-size:1.05rem; margin-bottom: 12px;">
+              ¿Cómo se dice en <b style="color:#FF7F50;">${langName}</b>:
+            </div>
+            <div style="font-size:1.6rem; font-weight:800; color:#FFFFFF; margin-bottom: 15px; background: #1A2535; padding: 15px; border-radius: 12px; border: 1px solid #2E3F5C; display: inline-block;">
+              "${phraseToTranslate}"
+            </div>
+          </div>
+        `;
+      } else {
+        document.getElementById('challenge-text').innerHTML = data.reto.replace(/\n/g, '<br>');
+      }
+      
       challengeAudioText = data.frase_audio || '';
       const ci = document.getElementById('challenge-input'); if(ci) ci.value = '';
       document.getElementById('challenge-result').innerHTML = '';
