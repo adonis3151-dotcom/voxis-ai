@@ -3185,18 +3185,35 @@
     btn.disabled = true;
 
     try {
-      const apiUrl = typeof API_URL !== 'undefined' ? API_URL : "https://voxis-backend.onrender.com";
-      const resp = await fetch(apiUrl + "/contact", {
+      // 🚀 Usando Web3Forms (Opción 1: Frontend Directo HTTPS)
+      // Reemplaza "TU_ACCESS_KEY_AQUI" por la llave gratuita que te dará Web3Forms en 1 segundo
+      const web3formsKey = "49a99c9b-f681-463c-b440-a12ce07e9441"; 
+      
+      if (web3formsKey === "TU_ACCESS_KEY_AQUI") {
+        alert("⚠️ Falta colocar tu Access Key de Web3Forms en el código.");
+        btn.textContent = origTxt;
+        btn.disabled = false;
+        return;
+      }
+
+      const resp = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, message: msg })
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ 
+          access_key: web3formsKey,
+          subject: "Soporte Voxis - Nuevo mensaje de " + name,
+          from_name: "Voxis App",
+          email: email, // El correo del cliente
+          message: "Nombre: " + name + "\nCorreo: " + email + "\n\nMensaje:\n" + msg 
+        })
       });
       const data = await resp.json();
-      if(data.ok) {
+      if(resp.status === 200) {
         alert("✅ " + t.success);
         document.getElementById('contact-popup').style.display = 'none';
+        document.getElementById('contact-msg').value = '';
       } else {
-        alert("❌ " + t.error + " - " + (data.error || ""));
+        alert("❌ " + t.error + " - " + (data.message || "Error Web3Forms"));
       }
     } catch(e) {
       alert("❌ " + t.error);
