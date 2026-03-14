@@ -1,0 +1,3211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Voxis AI — Your 24/7 AI Language Trainer</title>
+  <meta name="description" content="Aprende idiomas con corrección de pronunciación por IA en tiempo real. Voxis AI: tu entrenador de idiomas 24/7." />
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#FF7F50" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Voxis AI" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── RESET & BASE ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: #080C18;
+      font-family: 'Inter', sans-serif;
+      color: #C9D0E0;
+      overscroll-behavior: none;
+    }
+
+    /* ─── APP SHELL ─── */
+    #app {
+      max-width: 430px;
+      min-height: 100vh;
+      margin: 0 auto;
+      background: linear-gradient(180deg, #0D1220 0%, #090D1A 100%);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ─── HEADER ─── */
+    .app-header {
+      padding: 20px 20px 0;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .logo-waves {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 22px;
+    }
+    .logo-waves span {
+      display: block;
+      width: 4px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, #FF7F50, #E0693E);
+    }
+    .logo-waves span:nth-child(1) { height: 9px; }
+    .logo-waves span:nth-child(2) { height: 16px; }
+    .logo-waves span:nth-child(3) { height: 22px; }
+    .logo-waves span:nth-child(4) { height: 16px; }
+    .logo-waves span:nth-child(5) { height: 9px; }
+    .logo-text {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.3px;
+    }
+    .logo-sub {
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: #7A84A0;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    /* LANG SELECTOR & SETTINGS */
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 20px 10px;
+    }
+    .lang-selector {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      background: #131929;
+      border: 1px solid #2E3F5C;
+      border-radius: 10px;
+      padding: 2px 12px 2px 10px;
+      gap: 8px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      min-width: 0;
+    }
+    .lang-selector:focus-within { border-color: #FF7F50; }
+    .lang-selector { position: relative; } /* Added for absolute select */
+    .lang-selector .globe { font-size: 1rem; flex-shrink: 0; pointer-events: none; }
+    .lang-display {
+      flex: 1;
+      color: #C9D0E0;
+      font-size: 0.88rem;
+      font-weight: 500;
+      pointer-events: none;
+    }
+    .lang-selector select {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      opacity: 0; cursor: pointer;
+      appearance: none; -webkit-appearance: none;
+    }
+    .lang-selector select option { background: #131929; color: #C9D0E0; }
+    .lang-selector .chevron { color: #7A84A0; font-size: 0.75rem; flex-shrink: 0; pointer-events: none; }
+
+    .tts-btn {
+      background: rgba(255,127,80,0.1);
+      border: none;
+      color: #FF7F50;
+      border-radius: 6px;
+      padding: 2px 6px;
+      margin-left: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .tts-btn:hover { background: rgba(255,127,80,0.25); }
+
+    /* SETTINGS GEAR */
+    .settings-wrapper { position: relative; flex-shrink: 0; }
+    .settings-btn {
+      background: #131929;
+      border: 1px solid #2E3F5C;
+      border-radius: 10px;
+      width: 42px;
+      height: 42px;
+      font-size: 1.15rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s;
+    }
+    .settings-btn:hover { border-color: #FF7F50; }
+    .settings-panel {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      min-width: 210px;
+      background: #131929;
+      border: 1px solid #2E3F5C;
+      border-radius: 12px;
+      overflow: hidden;
+      z-index: 100;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .settings-panel.open { display: block; }
+    .settings-item {
+      padding: 13px 16px;
+      font-size: 0.88rem;
+      color: #C9D0E0;
+      cursor: pointer;
+      border-bottom: 1px solid #1E2A45;
+      transition: background 0.15s;
+    }
+    .settings-item:last-child { border-bottom: none; }
+    .settings-item:hover { background: #1A2535; }
+    .settings-item.danger { color: #FF6060; }
+    .settings-item.danger:hover { background: rgba(255,60,60,0.08); }
+
+    /* ─── NAV TABS ─── */
+    .nav-tabs {
+      display: flex;
+      background: #12192E;
+      border-radius: 100px;
+      padding: 4px;
+      gap: 2px;
+      margin: 0 20px 0;
+    }
+    .nav-tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px 6px;
+      border-radius: 100px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #7A84A0;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .nav-tab.active {
+      background: linear-gradient(135deg, #FF7F50, #E05020);
+      color: #FFFFFF;
+      box-shadow: 0 2px 12px rgba(255, 127, 80, 0.45);
+    }
+    .nav-tab:not(.active):hover { color: #C9D0E0; }
+    .active-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: #FF7F50;
+      text-transform: uppercase;
+      text-align: center;
+      height: 16px;
+      margin: 4px 20px 0;
+    }
+
+    /* ─── SCROLL CONTENT ─── */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 20px 100px;
+      scrollbar-width: none;
+    }
+    .content::-webkit-scrollbar { display: none; }
+
+    /* ─── SCREEN (each tab) ─── */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ══════════════════════════════════════
+       SCREEN 1 — ENTRENAR
+    ══════════════════════════════════════ */
+    .greeting-section {
+      text-align: center;
+      padding: 18px 0 10px;
+    }
+    .greeting-name {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.5px;
+    }
+    .greeting-plan {
+      font-size: 0.82rem;
+      color: #7A84A0;
+      margin-top: 3px;
+    }
+    .greeting-plan strong {
+      color: #C9D0E0;
+      font-weight: 500;
+    }
+
+    /* Mic Section */
+    .mic-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0 18px;
+    }
+    .mic-glow-outer {
+      position: relative;
+      width: 160px;
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .mic-glow-outer::before {
+      content: '';
+      position: absolute;
+      width: 160px; height: 160px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,100,40,0.55) 0%, rgba(255,127,80,0.25) 45%, transparent 70%);
+      animation: pulse 2.5s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50%       { transform: scale(1.2); opacity: 0.4; }
+    }
+    .mic-btn {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #FF7F50, #E0500A);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 32px rgba(255, 100, 40, 0.6), 0 0 0 8px rgba(255,127,80,0.15);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      z-index: 1;
+    }
+    .mic-btn:hover  { transform: scale(1.05); box-shadow: 0 12px 40px rgba(255,100,40,0.7), 0 0 0 12px rgba(255,127,80,0.2); }
+    .mic-btn:active { transform: scale(0.96); }
+    .mic-btn svg { width: 44px; height: 44px; fill: #FFFFFF; }
+    .mic-caption { font-size: 1.05rem; font-weight: 700; color: #FFFFFF; margin-top: 14px; text-align: center; }
+    .mic-sub     { font-size: 0.78rem; color: #7A84A0; margin-top: 3px; }
+
+    /* Training History */
+    .text-input-row {
+      display: flex;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    #text-input {
+      flex: 1;
+      background: #131929;
+      border: 1px solid #2E3F5C;
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #E8EAF0;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #text-input:focus { border-color: #FF7F50; }
+    #text-input::placeholder { color: #5A6070; }
+    .send-btn {
+      background: linear-gradient(135deg, #FF7F50, #E05020);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.15s;
+      flex-shrink: 0;
+    }
+    .send-btn:hover { transform: scale(1.05); }
+    #result-box {
+      display: none;
+      background: #131929;
+      border: 1px solid #2E3F5C;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .result-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .result-row:last-child { margin-bottom: 0; }
+    .result-label { font-size: 0.7rem; font-weight: 600; color: #7A84A0; text-transform: uppercase; letter-spacing: 0.5px; }
+    .result-value { font-size: 0.9rem; color: #E8EAF0; font-weight: 500; }
+    .correction-text { color: #6EE7A0; font-weight: 600; }
+    .original-text   { color: #FFB347; }
+    .spinner {
+      width: 28px; height: 28px;
+      border: 3px solid #2E3F5C;
+      border-top-color: #FF7F50;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Training History */
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #7A84A0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    .training-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .training-card {
+      background: #131929;
+      border: 1px solid #1E2A45;
+      border-radius: 12px;
+      padding: 14px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .training-card:hover { border-color: #FF7F50; }
+    .training-card-date  { font-size: 0.85rem; font-weight: 600; color: #FFFFFF; }
+    .training-card-label { font-size: 0.72rem; color: #7A84A0; margin-top: 2px; }
+
+    /* Bottom bar */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 430px;
+      background: #0D1220;
+      border-top: 1px solid #1E2A45;
+      padding: 10px 20px 16px;
+    }
+    .progress-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .progress-label { font-size: 0.82rem; color: #C9D0E0; font-weight: 500; }
+    .gear-icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #7A84A0;
+      font-size: 1.1rem;
+      padding: 4px;
+      transition: color 0.2s;
+    }
+    .gear-icon:hover { color: #C9D0E0; }
+    .progress-bar-bg {
+      height: 4px;
+      background: #1E2A45;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 60%;
+      background: linear-gradient(90deg, #FF7F50, #FF9E7E);
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+
+    /* ══════════════════════════════════════
+       SCREEN 2 — RUTAS IA
+    ══════════════════════════════════════ */
+    .routes-screen { padding-top: 16px; }
+    .screen-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #FFFFFF;
+      margin-bottom: 14px;
+    }
+    .mode-toggle {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 10px 8px;
+      border-radius: 12px;
+      border: 1px solid #1E2A45;
+      background: #131929;
+      color: #C9D0E0;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .mode-btn.active {
+      background: linear-gradient(135deg, #FF7F50, #E05020);
+      border-color: transparent;
+      color: #FFFFFF;
+      box-shadow: 0 4px 16px rgba(255,127,80,0.35);
+    }
+    .mode-btn:not(.active):hover { border-color: #FF7F50; }
+
+    .subsection-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 12px;
+    }
+    .level-list { display: flex; flex-direction: column; gap: 8px; }
+    .level-card {
+      background: #131929;
+      border: 1px solid #1E2A45;
+      border-radius: 12px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .level-card.unlocked {
+      border-color: #FF7F50;
+      box-shadow: 0 0 0 1px rgba(255,127,80,0.2);
+      background: #1A2030;
+    }
+    .level-card.locked { cursor: default; opacity: 0.55; }
+    .level-card-num   { font-size: 0.72rem; color: #FF7F50; font-weight: 600; margin-bottom: 2px; }
+    .level-card.locked .level-card-num { color: #5A6070; }
+    .level-card-name  { font-size: 0.95rem; font-weight: 700; color: #FFFFFF; }
+    .level-card.locked .level-card-name { color: #5A6070; }
+    .level-lock { float: right; color: #5A6070; }
+
+    .big-btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #FF7F50, #E0500A);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 14px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      text-align: center;
+      margin-top: 20px;
+      box-shadow: 0 6px 24px rgba(255,100,40,0.45);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .big-btn:hover  { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(255,100,40,0.5); }
+    .big-btn:active { transform: translateY(0); }
+
+    /* ══════════════════════════════════════
+       SCREEN 3 — MEJORAR / PRICING
+    ══════════════════════════════════════ */
+    .upgrade-screen { padding-top: 20px; }
+    .upgrade-hero { text-align: center; margin-bottom: 20px; }
+    .upgrade-hero h2 {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: #FFFFFF;
+      line-height: 1.15;
+      margin-bottom: 6px;
+    }
+    .upgrade-hero p { font-size: 0.85rem; color: #7A84A0; }
+
+    .plan-card {
+      background: #111827;
+      border: 1px solid #2A3550;
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 12px;
+      position: relative;
+    }
+    .plan-card.popular {
+      border-color: #FF7F50;
+      box-shadow: 0 0 24px rgba(255,127,80,0.18);
+    }
+    .plan-card.premium {
+      border-color: #FFB347;
+      box-shadow: 0 0 24px rgba(255,179,71,0.18);
+    }
+    .plan-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .plan-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 100px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .badge-free     { background: #1E2A45; color: #7A84A0; border: 1px solid #2E3F5C; }
+    .badge-std      { background: linear-gradient(135deg, #FF7F50, #E05020); color: #FFFFFF; }
+    .badge-pro      { background: linear-gradient(135deg, #FFB347, #E08000); color: #0A0E1A; }
+    .badge-current  { background: #1E2A45; color: #7A84A0; font-size: 0.68rem; padding: 3px 8px; border-radius: 100px; }
+    .badge-popular  { background: rgba(255,127,80,0.15); color: #FF7F50; font-size: 0.68rem; padding: 3px 8px; border-radius: 100px; }
+    .badge-premium  { background: rgba(255,179,71,0.15); color: #FFB347; font-size: 0.68rem; padding: 3px 8px; border-radius: 100px; }
+    .plan-phrases   { font-size: 1.6rem; font-weight: 800; color: #FFFFFF; margin-bottom: 4px; }
+    .plan-desc      { font-size: 0.8rem; color: #7A84A0; margin-bottom: 12px; }
+    .plan-btn {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-std {
+      background: linear-gradient(135deg, #FF7F50, #E05020);
+      color: #FFFFFF;
+      box-shadow: 0 4px 16px rgba(255,127,80,0.35);
+    }
+    .btn-pro {
+      background: linear-gradient(135deg, #FFB347, #E08000);
+      color: #0A0E1A;
+      box-shadow: 0 4px 16px rgba(255,179,71,0.35);
+    }
+    .plan-btn:hover { transform: translateY(-1px); }
+
+    .upgrade-footer {
+      text-align: center;
+      font-size: 0.72rem;
+      color: #5A6070;
+      margin-top: 6px;
+      padding-bottom: 8px;
+    }
+
+    .info-card {
+      background: #1A2235;
+      border: 1px solid #2E3F5C;
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+    .info-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #FFFFFF;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .info-desc {
+      font-size: 0.85rem;
+      color: #9AA4C0;
+      line-height: 1.5;
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 380px) {
+      .logo-text { font-size: 1.25rem; }
+      .greeting-name { font-size: 1.7rem; }
+      .mic-btn { width: 95px; height: 95px; }
+    }
+    /* ─── FULL LOGIN OVERLAY (Landing) ─── */
+    #login-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: #0A0E1A;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 20px 40px 20px;
+      overflow-y: auto;
+    }
+    .landing-header {
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      padding: 30px 0 20px 0;
+    }
+    .landing-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: #FF7F50;
+      letter-spacing: -0.5px;
+      margin-bottom: 5px;
+    }
+    .landing-sub {
+      color: #9AA4C0;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+    .lang-selector-landing {
+      background: #1A2235;
+      border: 1px solid #2E3F5C;
+      border-radius: 8px;
+      padding: 10px 15px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #E2E8F0;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .login-box {
+      width: 100%;
+      max-width: 400px;
+    }
+    .google-btn-main {
+      background: #1A2235;
+      border: 1px solid #2E3F5C;
+      color: #FFFFFF;
+      border-radius: 8px;
+      padding: 14px;
+      width: 100%;
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 25px;
+      transition: background 0.15s;
+    }
+    .google-btn-main:hover { background: #222d44; }
+    .google-btn-main .google-icon { width: 22px; height: 22px; }
+    .google-btn-main span { text-decoration: underline; }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      color: #5A6070;
+      font-size: 0.8rem;
+      margin-bottom: 25px;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid #1E2A45;
+    }
+    .divider:not(:empty)::before { margin-right: 15px; }
+    .divider:not(:empty)::after { margin-left: 15px; }
+
+    .form-container {
+      background: #0A0E1A;
+      text-align: left;
+    }
+    .form-title {
+      color: #FFFFFF;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      color: #E2E8F0;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+    }
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="tel"] {
+      width: 100%;
+      background: #131929;
+      border: 1px solid #2E3F5C;
+      border-radius: 8px;
+      padding: 12px;
+      color: #FFFFFF;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-group input:focus { border-color: #FF7F50; }
+    .whatsapp-input { color: #5A6070 !important; }
+
+    .plan-selection {
+      margin-top: 25px;
+      border-top: 1px solid #1E2A45;
+      padding-top: 20px;
+    }
+    .plan-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #E2E8F0;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+      cursor: pointer;
+    }
+    .plan-option input[type="radio"] {
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #7A84A0;
+      border-radius: 50%;
+      outline: none;
+      position: relative;
+      cursor: pointer;
+    }
+    .plan-option input[type="radio"]:checked {
+      border-color: #FF7F50;
+    }
+    .plan-option input[type="radio"]:checked::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 8px; height: 8px;
+      background: #FF7F50;
+      border-radius: 50%;
+    }
+
+    .terms-box {
+      margin-top: 25px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      color: #E2E8F0;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      border-bottom: 1px solid #1E2A45;
+      padding-bottom: 25px;
+      margin-bottom: 20px;
+    }
+    .terms-box input[type="checkbox"] {
+      width: 18px; height: 18px;
+      margin-top: 2px;
+      cursor: pointer;
+    }
+
+    .submit-btn {
+      background: linear-gradient(135deg, #FF7F50, #E05020);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 8px;
+      padding: 14px;
+      width: 100%;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255,127,80,0.3);
+      transition: transform 0.15s;
+    }
+    .submit-btn:hover { transform: translateY(-1px); }
+
+    .bottom-terms {
+      margin-top: 20px;
+      background: #111827;
+      border: 1px solid #1E2A45;
+      border-radius: 8px;
+      padding: 12px;
+      width: 100%;
+      max-width: 400px;
+      text-align: left;
+      color: #E2E8F0;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    /* ─── INTERMEDIATE OVERLAYS (OTP & ONBOARDING) ─── */
+    .overlay-screen {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: #0A0E1A;
+      z-index: 9998;
+      display: none; /* Hidden by default */
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .otp-input-group {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 25px 0;
+    }
+    .otp-input-group input {
+      width: 50px; height: 60px;
+      background: #1A2235;
+      border: 2px solid #2E3F5C;
+      border-radius: 12px;
+      color: #FFFFFF;
+      font-size: 1.5rem;
+      font-weight: 800;
+      text-align: center;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .otp-input-group input:focus { border-color: #FF7F50; }
+    
+    .cancel-link {
+      color: #7A84A0;
+      font-size: 0.85rem;
+      margin-top: 20px;
+      text-decoration: underline;
+      cursor: pointer;
+      display: inline-block;
+    }
+
+    .welcome-title {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: #FFFFFF;
+      margin-bottom: 10px;
+    }
+    .welcome-ask {
+      color: #9AA4C0;
+      font-size: 1rem;
+      margin-bottom: 30px;
+    }
+    .lang-dropdown-large {
+      width: 100%;
+      background: #1A2235;
+      border: 2px solid #2E3F5C;
+      border-radius: 12px;
+      padding: 15px;
+      color: #FFFFFF;
+      font-size: 1.1rem;
+      font-weight: 600;
+      outline: none;
+      margin-bottom: 30px;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237A84A0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 15px center;
+      background-size: 20px;
+    }
+    .lang-dropdown-large:focus { border-color: #FF7F50; }
+    
+  </style>
+</head>
+<body>
+<!-- ── LOGIN OVERLAY (Landing) ── -->
+<div id="login-overlay">
+  <div class="landing-header">
+    <div class="landing-logo">
+      <div class="logo-waves">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      Voxis AI
+    </div>
+    <div class="landing-sub">YOUR 24/7 AI LANGUAGE TRAINER</div>
+  </div>
+
+  <div class="login-box">
+    <select class="lang-selector-landing" id="landing-lang-select" onchange="changeLang(this.value)" style="appearance:none; border:none; color:white; font-size:1rem; font-family:'Inter',sans-serif; cursor:pointer;">
+      <option value="es">🌐 Español</option>
+      <option value="en">🌐 English</option>
+      <option value="fr">🌐 Français</option>
+      <option value="de">🌐 Deutsch</option>
+      <option value="it">🌐 Italiano</option>
+      <option value="pt">🌐 Português</option>
+      <option value="zh">🌐 中文</option>
+      <option value="ja">🌐 日本語</option>
+      <option value="ko">🌐 한국어</option>
+      <option value="ru">🌐 Русский</option>
+    </select>
+
+    <button class="google-btn-main" id="btn-login-google">
+      <svg class="google-icon" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      <span>Continuar con Google</span>
+    </button>
+
+    <div class="divider" id="landing-divider">o continúa con email</div>
+
+    <div class="form-container">
+      <div class="form-title" id="landing-form-title">Identifícate para comenzar.</div>
+      
+      <div class="form-group">
+        <label id="lbl-email">Correo:</label>
+        <input type="email" id="manual-email">
+      </div>
+      <div class="form-group">
+        <label id="lbl-names">Nombres:</label>
+        <input type="text" id="manual-names">
+      </div>
+      <div class="form-group">
+        <label id="lbl-lastnames">Apellidos:</label>
+        <input type="text" id="manual-lastnames">
+      </div>
+      <div class="form-group">
+        <label id="lbl-wa">WhatsApp:</label>
+        <input type="tel" class="whatsapp-input" placeholder="+1 555">
+      </div>
+
+      <div class="plan-selection">
+        <div class="form-title" id="landing-plan-title">Elige tu plan inicial:</div>
+        <label class="plan-option">
+          <input type="radio" name="plan_choice" value="free" checked>
+          <span id="opt-free">Plan FREE ($0): 5 frases/día</span>
+        </label>
+        <label class="plan-option">
+          <input type="radio" name="plan_choice" value="std">
+          <span id="opt-std">Plan STANDARD ($3/mes): 20 frases/día</span>
+        </label>
+        <label class="plan-option">
+          <input type="radio" name="plan_choice" value="pro">
+          <span id="opt-pro">Plan PRO ($8/mes): 100 frases/día</span>
+        </label>
+      </div>
+
+      <div class="terms-box">
+        <input type="checkbox" id="terms-checkbox">
+        <label id="landing-tc-check">Acepto los Términos, Condiciones y Política de Privacidad</label>
+      </div>
+
+      <button class="submit-btn" id="btn-manual-login"><span id="btn-manual-txt">Entrar / Registrarse</span></button>
+    </div>
+  </div>
+
+  <div class="bottom-terms" id="landing-tc-link">
+    📄 Ver Términos y Condiciones
+  </div>
+</div>
+
+<!-- ── OTP OVERLAY ── -->
+<div class="overlay-screen" id="otp-overlay">
+  <div class="login-box">
+    <div class="logo-waves" style="justify-content:center;display:flex;margin-bottom:16px;">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div style="font-size:1.3rem;font-weight:800;color:#FFFFFF;text-align:center;margin-bottom:6px;">Verifica tu correo</div>
+    <div class="login-sub" id="otp-message" style="text-align:center;margin-bottom:20px;">Ingresa el código de 4 dígitos que enviamos a tu correo.</div>
+
+    <div class="otp-input-group">
+      <input type="text" inputmode="numeric" maxlength="1" id="otp1" onkeyup="moveFocus(1, event)" autocomplete="off">
+      <input type="text" inputmode="numeric" maxlength="1" id="otp2" onkeyup="moveFocus(2, event)" autocomplete="off">
+      <input type="text" inputmode="numeric" maxlength="1" id="otp3" onkeyup="moveFocus(3, event)" autocomplete="off">
+      <input type="text" inputmode="numeric" maxlength="1" id="otp4" onkeyup="moveFocus(4, event)" autocomplete="off">
+    </div>
+
+    <div id="otp-error" style="color:#FF7F50;font-size:0.82rem;text-align:center;min-height:18px;margin-bottom:8px;"></div>
+    <button class="submit-btn" id="btn-verify-otp">Verificar Código</button>
+    <div class="cancel-link" id="btn-cancel-otp">↩ Volver / Usar otro correo</div>
+  </div>
+</div>
+
+<!-- ── ONBOARDING OVERLAY ── -->
+<div class="overlay-screen" id="onboarding-overlay">
+  <div class="login-box">
+    <div class="welcome-title" id="welcome-name">¡Bienvenido!</div>
+    <div id="name-confirm-group">
+      <div class="welcome-ask" style="margin-bottom:12px;">¿Cómo te llamas?</div>
+      <input type="text" id="user-name-input" placeholder="Tu nombre (ej: Jaime)"
+        style="width:100%;background:#131929;border:1px solid #2E3F5C;border-radius:12px;
+               padding:14px;color:#FFFFFF;font-family:'Inter',sans-serif;font-size:1rem;
+               outline:none;margin-bottom:20px;transition:border-color 0.2s;"
+        onfocus="this.style.borderColor='#FF7F50'" onblur="this.style.borderColor='#2E3F5C'">
+    </div>
+
+    <div class="welcome-ask" style="margin-bottom:8px;">¿Qué idioma quieres practicar hoy?</div>
+    <select class="lang-dropdown-large" id="onboarding-lang-select">
+      <option value="en">Inglés</option>
+      <option value="es">Español</option>
+      <option value="fr">Francés</option>
+      <option value="de">Alemán</option>
+      <option value="it">Italiano</option>
+      <option value="pt">Português</option>
+      <option value="zh">Mandarín</option>
+      <option value="ja">Japonés</option>
+      <option value="ko">Coreano</option>
+      <option value="ru">Ruso</option>
+    </select>
+
+    <button class="submit-btn" id="btn-finish-onboarding">Continuar 👉</button>
+  </div>
+</div>
+
+<!-- ── NAME CONFIRM OVERLAY (solo usuarios nuevos) ── -->
+<div class="overlay-screen" id="name-confirm-overlay" style="display:none;">
+  <div class="login-box">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:2.5rem;">👋</div>
+      <div class="welcome-title" id="name-confirm-title" style="font-size:1.6rem;margin-top:8px;">¿Cómo te llamas?</div>
+      <div id="name-confirm-sub" style="color:#7A84A0;font-size:0.88rem;margin-top:6px;">Así es como te saludaremos cada día.</div>
+    </div>
+    <div class="form-group">
+      <label id="name-confirm-label">Tu nombre preferido:</label>
+      <input type="text" id="name-confirm-input" autocomplete="given-name"
+             style="width:100%;background:#131929;border:1px solid #2E3F5C;border-radius:8px;padding:12px;color:#FFFFFF;font-family:'Inter',sans-serif;font-size:0.95rem;outline:none;">
+    </div>
+    <div id="name-confirm-error" style="color:#FF7F50;font-size:0.82rem;min-height:18px;margin-bottom:8px;"></div>
+    <button class="submit-btn" id="btn-confirm-name">Confirmar y continuar ✓</button>
+  </div>
+</div>
+
+<div id="app">
+
+  <!-- ── HEADER ── -->
+  <header class="app-header">
+    <div class="logo-row">
+      <div class="logo-waves">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <span class="logo-text">Voxis AI</span>
+    </div>
+    <div class="logo-sub">Your 24/7 AI Language Trainer</div>
+
+    <!-- HEADER CONTROLS: Lang selector (shorter) + Settings gear -->
+    <div class="header-controls">
+      <div class="lang-selector">
+        <span class="globe">🌐</span>
+        <div class="lang-display" id="lang-display">Español</div>
+        <select id="lang-select" onchange="changeLang(this.value)" aria-label="Idioma de la interfaz">
+          <option value="es">Español</option>
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+          <option value="it">Italiano</option>
+          <option value="pt">Português</option>
+          <option value="zh">&#20013;&#25991;</option>
+          <option value="ja">&#26085;&#26412;&#35486;</option>
+          <option value="ko">&#54620;&#44397;&#50612;</option>
+          <option value="ru">&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</option>
+        </select>
+        <span class="chevron">▼</span>
+      </div>
+      <!-- GEAR / SETTINGS -->
+      <div class="settings-wrapper">
+        <button class="settings-btn" id="settings-btn" onclick="toggleSettings()" aria-label="Ajustes">⚙️</button>
+        <div class="settings-panel" id="settings-panel">
+          <div class="settings-item" id="si-lang" onclick="if(window.openLangChange) window.openLangChange(); else alert('Cargando...')"><span id="si-lang-txt">🔄 Cambiar idioma a aprender</span></div>
+          <div class="settings-item" id="si-contact" onclick="openContactModal(); toggleSettings();"><span id="si-contact-txt">📧 Contáctenos</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <nav class="nav-tabs" role="tablist">
+      <div class="nav-tab active" id="tab-train" role="tab" aria-selected="true"  onclick="switchTab('train')">🎤 Entrenar</div>
+      <div class="nav-tab"        id="tab-routes" role="tab" aria-selected="false" onclick="switchTab('routes')">📚 Rutas</div>
+      <div class="nav-tab"        id="tab-upgrade" role="tab" aria-selected="false" onclick="switchTab('upgrade')">⭐ Mejorar</div>
+    </nav>
+    <div class="active-label" id="active-label"></div>
+  </header>
+
+  <!-- ── SCROLLABLE CONTENT ── -->
+  <main class="content">
+
+    <!-- ════ SCREEN 1: ENTRENAR ════ -->
+    <section class="screen active" id="screen-train" role="tabpanel">
+
+      <div class="greeting-section">
+        <div class="greeting-name" id="greeting-name">...</div>
+        <div class="greeting-plan" id="greeting-plan"><span id="greet-plan-word">Plan</span> Free &nbsp;|&nbsp; <strong><span id="greet-lang">Inglés</span></strong></div>
+      </div>
+
+      <div class="mic-section">
+        <div class="mic-glow-outer">
+          <button class="mic-btn" id="mic-btn" aria-label="Presionar para hablar" onclick="toggleMic()">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-1 16.93A8.001 8.001 0 0 1 4 10H6a6 6 0 0 0 12 0h2a8.001 8.001 0 0 1-7 6.93V20h3v2H8v-2h3v-2.07z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="mic-caption" id="mic-caption">Toca para hablar en Inglés</div>
+        <div class="mic-sub" id="mic-sub">Max 5 segundos</div>
+      </div>
+
+      <!-- Text Input + Result -->
+      <div class="text-input-row">
+        <input id="text-input" type="text" placeholder="O escribe aquí tu frase en Inglés..." autocomplete="off" />
+        <button class="send-btn" onclick="sendText()" aria-label="Enviar frase">🚀</button>
+      </div>
+      <div id="result-box"></div>
+
+      <!-- Streak & Sticker Row -->
+      <div id="streak-row" style="
+        display:flex; align-items:center; justify-content:space-between;
+        margin-bottom:8px; padding:10px 14px;
+        background:#131929; border:1px solid #1E2A45; border-radius:14px;
+      ">
+        <div>
+          <span id="streak-badge" style="font-size:1.35rem;">🔥</span>
+          <span id="streak-count" style="font-weight:800;color:#FF7F50;font-size:1rem;"> 0 días</span>
+          <span style="font-size:0.78rem;color:#7A84A0;"> de racha</span>
+        </div>
+        <div id="stickers-row" style="display:flex;gap:4px;font-size:1.3rem;"></div>
+        <button onclick="showStickers()" style="
+          background:none;border:1px solid #2E3F5C;border-radius:8px;
+          color:#9AA4C0;font-size:0.75rem;padding:4px 10px;cursor:pointer;
+        ">Ver logros</button>
+      </div>
+
+      <div class="section-title" id="section-recent">Entrenamientos recientes</div>
+      <div class="training-grid" id="training-grid">
+        <div style="grid-column:1/-1;text-align:center;color:#7A84A0;font-size:0.82rem;padding:20px 0;">Cargando historial...</div>
+      </div>
+
+    </section>
+
+    <section class="screen" id="screen-routes" role="tabpanel">
+      <div class="routes-screen">
+        <div class="screen-title" id="routes-title">📚 Ruta de Estudio IA</div>
+        <div class="mode-toggle">
+          <button class="mode-btn active" id="btn-fund" onclick="setMode('fund')">🧱 <span id="btn-fund-txt">Fundamentos</span></button>
+          <button class="mode-btn"        id="btn-real" onclick="setMode('real')">🎭 <span id="btn-real-txt">Situaciones Reales</span></button>
+        </div>
+        <div class="subsection-title" id="subsection-fund">🧱 Fundamentos</div>
+        <div class="level-list">
+          <div class="level-card unlocked">
+            <div class="level-card-num" id="lv1-num">Nivel 1/20:</div>
+            <div class="level-card-name" id="lv1-name">Saludos</div>
+          </div>
+          <div class="level-card locked">
+            <span class="level-lock">🔒</span>
+            <div class="level-card-num" id="lv2-num">Nivel 2/20:</div>
+            <div class="level-card-name" id="lv2-name">Números</div>
+          </div>
+          <div class="level-card locked">
+            <span class="level-lock">🔒</span>
+            <div class="level-card-num" id="lv3-num">Nivel 3/20:</div>
+            <div class="level-card-name" id="lv3-name">Colores</div>
+          </div>
+          <div class="level-card locked">
+            <span class="level-lock">🔒</span>
+            <div class="level-card-num" id="lv4-num">Nivel 4/20:</div>
+            <div class="level-card-name" id="lv4-name">Familia</div>
+          </div>
+          <div class="level-card locked">
+            <span class="level-lock">🔒</span>
+            <div class="level-card-num" id="lv5-num">Nivel 5/20:</div>
+            <div class="level-card-name" id="lv5-name">Días y Meses</div>
+          </div>
+        </div>
+        <button class="big-btn" id="btn-challenge" onclick="startChallenge()">🚀 Iniciar Reto de Hoy</button>
+
+        <!-- Challenge result area (hidden until challenge is started) -->
+        <div id="challenge-area" style="display:none; margin-top:16px;">
+          <!-- AI challenge card -->
+          <div id="challenge-card" style="
+            background:#131929; border:1px solid #1E2A45; border-radius:16px;
+            padding:18px; margin-bottom:14px;
+          ">
+            <div style="font-size:0.75rem;font-weight:700;color:#FF7F50;letter-spacing:1px;margin-bottom:8px;">🤖 RETO DE IA</div>
+            <div id="challenge-text" style="color:#E8EAF0;font-size:0.95rem;line-height:1.6;"></div>
+            <button id="btn-play-challenge" onclick="playChallengeAudio()" style="
+              margin-top:10px;background:none;border:1px solid #2E3F5C;border-radius:8px;
+              color:#9AA4C0;font-size:0.8rem;padding:5px 12px;cursor:pointer;
+            ">🔊 Escuchar frase</button>
+          </div>
+
+          <!-- Challenge mic row (replaces text input) -->
+          <div id="challenge-mic-row" style="
+            display:flex; align-items:center; justify-content:flex-end;
+            gap:12px; margin-top:6px;
+          ">
+            <span id="challenge-mic-label" style="
+              color:#9AA4C0; font-size:0.85rem; flex:1; text-align:left;
+            ">Presiona para hablar</span>
+            <button id="challenge-mic-btn" onclick="toggleChallengeMic()" style="
+              width:46px; height:46px; border-radius:50%; cursor:pointer; border:none;
+              background:linear-gradient(135deg,#FF7F50,#E05020);
+              box-shadow:0 4px 16px rgba(255,127,80,0.4);
+              font-size:1.2rem; flex-shrink:0;
+              transition:transform 0.15s, box-shadow 0.15s;
+            ">🎙️</button>
+          </div>
+
+          <!-- Challenge evaluation result -->
+          <div id="challenge-result" style="margin-top:12px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ SCREEN 3: MEJORAR ════ -->
+    <section class="screen" id="screen-upgrade" role="tabpanel">
+      <div class="upgrade-screen">
+        <div class="upgrade-hero">
+          <h2 id="up-title">Desbloquea tu potencial 🚀</h2>
+          <p id="up-sub">Elige el plan perfecto para ti</p>
+        </div>
+
+        <div class="info-card">
+          <div class="info-title" id="info-title">🚀 Máxima Velocidad e Inteligencia</div>
+          <div class="info-desc" id="info-desc">Al subir a un nivel de paga, tu cuenta se migra a servidores dedicados con modelos de IA más avanzados.</div>
+        </div>
+
+        <!-- FREE -->
+        <div class="plan-card">
+          <div class="plan-header">
+            <span class="plan-badge badge-free">FREE</span>
+            <span class="badge-current" id="badge-current">Plan actual</span>
+          </div>
+          <div class="plan-phrases" id="phrases-free">5 frases/día</div>
+          <div class="plan-desc" id="desc-free">El punto de partida</div>
+        </div>
+        <!-- STANDARD -->
+        <div class="plan-card popular">
+          <div class="plan-header">
+            <span class="plan-badge badge-std">STANDARD <span id="std-price">$3/mes</span></span>
+            <span class="badge-popular" id="badge-popular">⭐ MÁS POPULAR</span>
+          </div>
+          <div class="plan-phrases" id="phrases-std">20 frases/día</div>
+          <div class="plan-desc" id="desc-std">Todo lo del plan Free +</div>
+          <button class="plan-btn btn-std" id="btn-std">Suscribirse $3/mes</button>
+        </div>
+        <!-- PRO -->
+        <div class="plan-card premium">
+          <div class="plan-header">
+            <span class="plan-badge badge-pro">PRO <span id="pro-price">$8/mes</span></span>
+            <span class="badge-premium">👑 PREMIUM</span>
+          </div>
+          <div class="plan-phrases" id="phrases-pro">100 frases/día</div>
+          <div class="plan-desc" id="desc-pro">Máxima velocidad e inteligencia IA</div>
+          <button class="plan-btn btn-pro" id="btn-pro">Suscribirse $8/mes</button>
+        </div>
+        <div class="upgrade-footer" id="up-footer">🔒 Pagos seguros con Stripe · Cancela cuando quieras</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── BOTTOM PROGRESS BAR (Entrenar only) ── -->
+  <div class="bottom-bar" id="bottom-bar">
+    <div class="progress-row">
+      <span class="progress-label" id="progress-label">0 / 5 frases hoy</span>
+      <span id="progress-reset" style="font-size:0.72rem;color:#7A84A0;">Reinicia a medianoche</span>
+    </div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progress-bar-fill" style="width:0%;"></div>
+    </div>
+  </div>
+
+  <!-- ── GAMIFICATION POPUP ── -->
+  <div id="sticker-popup" style="
+    display:none; position:fixed; inset:0; z-index:9998;
+    background:rgba(8,12,24,0.92); align-items:center; justify-content:center;
+  ">
+    <div style="
+      background:#131929; border:1px solid #1E2A45; border-radius:24px;
+      max-width:360px; width:90%; padding:32px 24px; text-align:center;
+    ">
+      <div style="font-size:2rem;margin-bottom:6px;" id="popup-icon">🏆</div>
+      <div style="font-size:1.2rem;font-weight:800;color:#FFFFFF;margin-bottom:6px;" id="popup-title">¡Logro desbloqueado!</div>
+      <div style="font-size:0.9rem;color:#C9D0E0;margin-bottom:20px;" id="popup-desc">Completaste tu primer reto.</div>
+      <button onclick="document.getElementById('sticker-popup').style.display='none'" style="
+        background:linear-gradient(135deg,#FF7F50,#E05020);border:none;
+        border-radius:12px;color:#fff;font-size:0.95rem;padding:12px 28px;cursor:pointer;
+      ">¡Genial! 🎉</button>
+    </div>
+  </div>
+
+  <!-- ── LOGROS PANEL ── -->
+  <div id="logros-panel" style="
+    display:none; position:fixed; inset:0; z-index:9997;
+    background:rgba(8,12,24,0.92); align-items:flex-end; justify-content:center;
+  ">
+    <div style="
+      background:#131929; border:1px solid #1E2A45; border-radius:24px 24px 0 0;
+      width:100%; max-width:480px; padding:28px 24px 40px;
+    ">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <span style="font-size:1.1rem;font-weight:800;color:#FFFFFF;">🏆 Tus Logros</span>
+        <button onclick="document.getElementById('logros-panel').style.display='none'" style="background:none;border:none;color:#7A84A0;font-size:1.4rem;cursor:pointer;">✕</button>
+      </div>
+      <div id="logros-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+  </div>
+
+  <!-- ── CONTACT POPUP / SUPPORT ── -->
+  <div id="contact-popup" style="
+    display:none; position:fixed; inset:0; z-index:9998;
+    background:rgba(8,12,24,0.92); align-items:center; justify-content:center;
+  ">
+    <div style="
+      background:#131929; border:1px solid #1E2A45; border-radius:24px;
+      max-width:360px; width:90%; padding:32px 24px; position:relative;
+    ">
+      <button onclick="document.getElementById('contact-popup').style.display='none'" style="position:absolute;top:16px;right:20px;background:none;border:none;color:#7A84A0;font-size:1.4rem;cursor:pointer;">✕</button>
+      <div style="text-align:center;">
+        <div style="font-size:2rem;margin-bottom:6px;">🛠️</div>
+        <div style="font-size:1.2rem;font-weight:800;color:#FFFFFF;margin-bottom:6px;" id="contact-title">Soporte Técnico</div>
+        <div style="font-size:0.85rem;color:#7A84A0;margin-bottom:20px;" id="contact-desc">Déjanos un mensaje y te responderemos lo antes posible.</div>
+      </div>
+      
+      <input type="text" id="contact-name" placeholder="Tu Nombre" style="width:100%;margin-bottom:12px;padding:12px;border-radius:12px;background:#0D1220;border:1px solid #2E3F5C;color:#fff;font-family:Inter;" />
+      <input type="email" id="contact-email" placeholder="Tu Correo (para responderte)" style="width:100%;margin-bottom:12px;padding:12px;border-radius:12px;background:#0D1220;border:1px solid #2E3F5C;color:#fff;font-family:Inter;" />
+      <textarea id="contact-msg" placeholder="¿Cómo podemos ayudarte?" rows="4" style="width:100%;margin-bottom:16px;padding:12px;border-radius:12px;background:#0D1220;border:1px solid #2E3F5C;color:#fff;font-family:Inter;resize:none;"></textarea>
+      
+      <button id="contact-submit-btn" onclick="if(window.submitContactForm) window.submitContactForm()" style="
+        width:100%; background:linear-gradient(135deg,#FF7F50,#E05020);border:none;
+        border-radius:12px;color:#fff;font-size:0.95rem;padding:14px;font-weight:600;cursor:pointer;
+      ">Enviar Mensaje 🚀</button>
+    </div>
+  </div>
+
+  </div>
+</div>
+
+<!-- ── FIREBASE COMPAT SDK (v10): Auth + Firestore ── -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+<script>
+  // ─── CONFIGURACIÓN DE FIREBASE (solo para Google Sign-In) ───
+  const firebaseConfig = {
+    apiKey: "AIzaSyB-XbXmKt5J5JBTth-5RXW_BYVafwJdts8",
+    authDomain: "voxis-ai-dc2dc.firebaseapp.com",
+    projectId: "voxis-ai-dc2dc",
+    storageBucket: "voxis-ai-dc2dc.firebasestorage.app",
+    messagingSenderId: "31011642540",
+    appId: "1:31011642540:web:4c731ee451549993fa9309"
+  };
+
+  try {
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    window.auth = auth; // expose globally for doLogout
+    const provider = new firebase.auth.GoogleAuthProvider();
+
+    const loginOverlay      = document.getElementById('login-overlay');
+    const otpOverlay        = document.getElementById('otp-overlay');
+    const onboardingOverlay = document.getElementById('onboarding-overlay');
+    const greetingName      = document.getElementById('greeting-name');
+    const welcomeName       = document.getElementById('welcome-name');
+    const termsCheckbox     = document.getElementById('terms-checkbox');
+    const manualEmail       = document.getElementById('manual-email');
+    const manualNames       = document.getElementById('manual-names');
+
+    // ─── LOGIN CON GOOGLE ───
+    document.getElementById('btn-login-google').addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;border-top-color:#fff;"></div><span>Conectando a Google...</span>';
+      
+      auth.signInWithPopup(provider).catch((err) => {
+        btn.innerHTML = originalHTML;
+        console.error('Google login error:', err);
+        alert('⚠️ Error al iniciar con Google. Si estás usando un dominio nuevo (como vercel.app), verifica que esté en Firebase > Authentication > Authorized domains.');
+      });
+    });
+
+    // ─── LOGIN CON OTP DE 4 DÍGITOS ───
+    document.getElementById('btn-manual-login').addEventListener('click', async () => {
+      if (!termsCheckbox.checked) {
+        alert('⚠️ Debes aceptar los Términos y Condiciones para continuar.');
+        return;
+      }
+      const email = manualEmail.value.trim();
+      const names = manualNames.value.trim();
+      if (!email || !names) {
+        alert('⚠️ Completa los campos requeridos (Correo y Nombres).');
+        return;
+      }
+
+      const btn = document.getElementById('btn-manual-login');
+      btn.disabled = true;
+      const origTxt = document.getElementById('btn-manual-txt').textContent;
+      document.getElementById('btn-manual-txt').textContent = 'Enviando código...';
+
+      try {
+        const resp = await fetch(API_URL + '/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, lang: currentLang || 'es' })
+        });
+        const result = await resp.json();
+
+        if (!result.ok) {
+          alert('⚠️ ' + (result.error || 'No se pudo enviar el código.'));
+          btn.disabled = false;
+          document.getElementById('btn-manual-txt').textContent = origTxt;
+          return;
+        }
+
+        // Guardar datos para usar tras la verificación
+        localStorage.setItem('voxis_otp_email', email);
+        localStorage.setItem('voxis_user_name', names);
+
+        // Mostrar overlay OTP
+        loginOverlay.style.display = 'none';
+        otpOverlay.style.display = 'flex';
+        document.getElementById('otp-message').textContent =
+          'Enviamos un código a ' + email + '. Expira en 10 minutos.';
+        document.getElementById('otp-error').textContent = '';
+        document.getElementById('otp1').value = '';
+        document.getElementById('otp2').value = '';
+        document.getElementById('otp3').value = '';
+        document.getElementById('otp4').value = '';
+        document.getElementById('otp1').focus();
+
+        // Dev mode: si el backend devuelve el código directamente (sin EMAIL_PASS)
+        if (result.dev_code) {
+          document.getElementById('otp-error').style.color = '#FFB347';
+          document.getElementById('otp-error').textContent = '🛠 Falló el envío de email, usa este código: ' + result.dev_code;
+          const devCodeStr = String(result.dev_code);
+          if (devCodeStr.length === 4) {
+            document.getElementById('otp1').value = devCodeStr[0];
+            document.getElementById('otp2').value = devCodeStr[1];
+            document.getElementById('otp3').value = devCodeStr[2];
+            document.getElementById('otp4').value = devCodeStr[3];
+          }
+        }
+      } catch (err) {
+        alert('⚠️ Error de conexión con el servidor.');
+      } finally {
+        btn.disabled = false;
+        document.getElementById('btn-manual-txt').textContent = origTxt;
+      }
+    });
+
+    // ─── CANCELAR OTP ───
+    document.getElementById('btn-cancel-otp').addEventListener('click', () => {
+      otpOverlay.style.display = 'none';
+      loginOverlay.style.display = 'flex';
+      document.getElementById('otp-error').textContent = '';
+    });
+
+    // ─── VERIFICAR OTP ───
+    document.getElementById('btn-verify-otp').addEventListener('click', async () => {
+      const code = (document.getElementById('otp1').value +
+                    document.getElementById('otp2').value +
+                    document.getElementById('otp3').value +
+                    document.getElementById('otp4').value).trim();
+      if (code.length < 4) {
+        document.getElementById('otp-error').textContent = 'Ingresa los 4 dígitos completos.';
+        return;
+      }
+
+      const email = localStorage.getItem('voxis_otp_email') || '';
+      const verifyBtn = document.getElementById('btn-verify-otp');
+      verifyBtn.disabled = true;
+      verifyBtn.textContent = 'Verificando...';
+
+      try {
+        const resp = await fetch(API_URL + '/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code })
+        });
+        const result = await resp.json();
+
+        if (!result.ok) {
+          document.getElementById('otp-error').style.color = '#FF7F50';
+          document.getElementById('otp-error').textContent = '❌ ' + (result.error || 'Código incorrecto.');
+          verifyBtn.disabled = false;
+          verifyBtn.textContent = 'Verificar Código';
+          return;
+        }
+
+        // ✅ Código correcto — entrar a la app
+        otpOverlay.style.display = 'none';
+        const firstName = (localStorage.getItem('voxis_user_name') || 'Usuario').split(' ')[0];
+        showOnboarding(firstName);
+
+      } catch (err) {
+        document.getElementById('otp-error').textContent = '⚠️ Error de conexión.';
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = 'Verificar Código';
+      }
+    });
+
+    // ─── ONBOARDING ───
+    function showOnboarding(firstName) {
+      const hasOnboarded = localStorage.getItem('voxis_onboarded');
+      if (hasOnboarded) {
+        // Check nombre_confirmado in Firestore for new users
+        checkNombreConfirmado(firstName);
+      } else {
+        const t_ob = I18N[currentLang] || I18N['es'];
+        welcomeName.textContent = (t_ob.greeting || 'Hola') + ', ' + firstName + '!';
+        onboardingOverlay.style.display = 'flex';
+      }
+    }
+
+    document.getElementById('btn-finish-onboarding').addEventListener('click', () => {
+      const selectedLang = document.getElementById('onboarding-lang-select').value;
+      const nameInput = document.getElementById('user-name-input');
+      const typedName = nameInput ? nameInput.value.trim() : '';
+      if (!typedName) {
+        if (nameInput) { nameInput.style.borderColor = '#FF7F50'; nameInput.focus(); }
+        return;
+      }
+      localStorage.setItem('voxis_user_name', typedName);
+      localStorage.setItem('voxis_onboarded', 'true');
+      localStorage.setItem('voxis_target_lang', selectedLang);
+      onboardingOverlay.style.display = 'none';
+      checkNombreConfirmado(typedName);
+    });
+
+    // ─── CHECK nombre_confirmado EN FIRESTORE ───
+    async function checkNombreConfirmado(firstName) {
+      try {
+        const db = firebase.firestore();
+        const uid = auth.currentUser ? auth.currentUser.uid
+                  : ('otp_' + (localStorage.getItem('voxis_otp_email') || 'anon').replace(/[^a-z0-9]/gi,'_'));
+        const ref  = db.collection('usuarios').doc(uid);
+        // Always save the name the user typed / provided
+        await ref.set({ nombres: firstName, nombre_confirmado: true }, { merge: true });
+        localStorage.setItem('voxis_user_name', firstName);
+        enterMainApp(firstName);
+      } catch(e) {
+        localStorage.setItem('voxis_user_name', firstName);
+        enterMainApp(firstName);
+      }
+    }
+
+    function showNameConfirmScreen(prefillName, firestoreRef) {
+      const t_nc = I18N[currentLang] || I18N['es'];
+      document.getElementById('name-confirm-title').textContent = t_nc.name_confirm_title || '👋 ¿Cómo te llamas?';
+      document.getElementById('name-confirm-sub').textContent   = t_nc.name_confirm_sub   || 'Así es como te saludaremos cada día.';
+      document.getElementById('name-confirm-label').textContent = t_nc.name_confirm_label  || 'Tu nombre preferido:';
+      document.getElementById('btn-confirm-name').textContent   = t_nc.name_confirm_btn   || 'Confirmar y continuar ✓';
+      document.getElementById('name-confirm-input').value = prefillName || '';
+      document.getElementById('name-confirm-error').textContent = '';
+      document.getElementById('name-confirm-overlay').style.display = 'flex';
+
+      document.getElementById('btn-confirm-name').onclick = async () => {
+        const nombre = document.getElementById('name-confirm-input').value.trim();
+        if (!nombre) {
+          document.getElementById('name-confirm-error').textContent =
+            (I18N[currentLang] || I18N['es']).name_confirm_warn || '⚠️ Por favor ingresa tu nombre.';
+          return;
+        }
+        try {
+          await firestoreRef.set({ nombres: nombre, nombre_confirmado: true }, { merge: true });
+        } catch(e) { /* non-blocking */ }
+        document.getElementById('name-confirm-overlay').style.display = 'none';
+        enterMainApp(nombre);
+      };
+    }
+
+    function enterMainApp(firstName) {
+      loginOverlay.style.display      = 'none';
+      otpOverlay.style.display        = 'none';
+      onboardingOverlay.style.display = 'none';
+      // Use the greeting word from the current interface language (Regla #1)
+      const greetWord = (I18N[currentLang] && I18N[currentLang].greeting) ? I18N[currentLang].greeting : 'Hola';
+      if (greetingName) greetingName.textContent = greetWord + ', ' + firstName;
+
+      const targetLangCode = localStorage.getItem('voxis_target_lang') || 'en';
+      const langNames = {
+        'en':'Inglés','es':'Español','fr':'Francés','de':'Alemán',
+        'it':'Italiano','pt':'Portugués','zh':'Mandarín','ja':'Japonés','ko':'Coreano','ru':'Ruso'
+      };
+      const tName = langNames[targetLangCode] || 'Inglés';
+      const greetLangSpan = document.getElementById('greet-lang');
+      if (greetLangSpan) greetLangSpan.textContent = tName;
+      const micCap = document.getElementById('mic-caption');
+      if (micCap) micCap.textContent = 'Toca para hablar en ' + tName;
+      const textInput = document.getElementById('text-input');
+      if (textInput) textInput.placeholder = 'O escribe aquí tu frase en ' + tName + '...';
+
+      // ── Init Firestore & load data ──
+      try {
+        const db = firebase.firestore();
+        const uid = auth.currentUser ? auth.currentUser.uid
+                  : ('otp_' + (localStorage.getItem('voxis_otp_email') || 'anon').replace(/[^a-z0-9]/gi,'_'));
+        window._voxisUID = uid;
+        window._voxisDB  = db;
+        loadVoxisData(db, uid);
+      } catch(e) {
+        console.warn('Firestore init error:', e);
+        loadVoxisDataLocal();   // fallback: localStorage only
+      }
+
+      // ── Ask notification permission for daily reminders ──
+      if ('Notification' in window && Notification.permission === 'default') {
+        setTimeout(() => askReminderPermission(), 4000);
+      }
+    }
+
+    // ════════════════════════════════════════════
+    //  PLAN LIMITS
+    // ════════════════════════════════════════════
+    const PLAN_LIMITS = {
+      free:     { phrases: 5,   audioSec: 5  },
+      standard: { phrases: 20,  audioSec: 10 },
+      pro:      { phrases: 100, audioSec: 10 },
+    };
+
+    // ─── MASTER ACCOUNT ───
+    const MASTER_EMAIL = 'adonis3151@gmail.com';
+    function isMaster() {
+      const user = window.auth && window.auth.currentUser;
+      if (user && user.email === MASTER_EMAIL) return true;
+      if (localStorage.getItem('voxis_otp_email') === MASTER_EMAIL) return true;
+      return false;
+    }
+
+    function getTodayISO() {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    // Returns { plan, phrasesToday, limit, audioSec } from Firestore doc cache
+    window._voxisQuota = { plan:'free', phrasesToday:0, limit:5, audioSec:5 };
+
+    function updateProgressBar(used, limit) {
+      const pct = Math.min(100, Math.round((used / limit) * 100));
+      const fill = document.getElementById('progress-bar-fill');
+      const label = document.getElementById('progress-label');
+      if (fill)  fill.style.width = pct + '%';
+      if (label) label.textContent = used + ' / ' + limit + ' frases hoy';
+
+      // Color: green → orange → red
+      if (fill) {
+        fill.style.background = pct < 60
+          ? 'linear-gradient(90deg,#6EE7A0,#3BC47A)'
+          : pct < 90
+          ? 'linear-gradient(90deg,#FFB347,#E08020)'
+          : 'linear-gradient(90deg,#FF7F50,#E03010)';
+      }
+    }
+
+    // ════════════════════════════════════════════
+    //  FIRESTORE LOAD / SAVE
+    // ════════════════════════════════════════════
+    async function loadVoxisData(db, uid) {
+      try {
+        const ref  = db.collection('usuarios').doc(uid);
+        const snap = await ref.get();
+        const data = snap.exists ? snap.data() : {};
+
+        const today      = getTodayISO();
+        const storedDate = data.ultima_fecha_uso || '';
+        let phrasesToday = storedDate === today ? (data.frases_usadas_hoy || 0) : 0;
+
+        // Auto-reset at new day
+        if (storedDate !== today) {
+          await ref.set({ ultima_fecha_uso: today, frases_usadas_hoy: 0 }, { merge: true });
+        }
+
+        // Normalize plan (old schema: 'Free', new: 'free')
+        const planRaw   = (data.plan || 'free').toLowerCase();
+        const plan      = PLAN_LIMITS[planRaw] ? planRaw : 'free';
+        const limits    = PLAN_LIMITS[plan];
+        const racha     = data.racha_dias || 0;
+        const lastTrain = data.ultima_fecha_uso || '';
+        const logros    = data.logros || [];
+
+        window._voxisQuota  = isMaster()
+          ? { plan: 'master', phrasesToday, limit: 999999, audioSec: 60 }
+          : { plan, phrasesToday, limit: limits.phrases, audioSec: limits.audioSec };
+        window._voxisRef    = ref;
+        window._voxisLogros = logros;
+
+        updateProgressBar(phrasesToday, isMaster() ? 999999 : limits.phrases);
+        updateStreakUI(racha, lastTrain);
+        loadRecentSessions(db, uid);
+        updateStickersRow(logros);
+
+      } catch(e) {
+        console.warn('Firestore load error:', e);
+        loadVoxisDataLocal();
+      }
+    }
+
+    function loadVoxisDataLocal() {
+      const uidSuffix = (window.auth && window.auth.currentUser) 
+        ? window.auth.currentUser.uid 
+        : ('otp_' + (localStorage.getItem('voxis_otp_email') || 'anon').replace(/[^a-z0-9]/gi,'_'));
+
+      const phrasesKey = 'voxis_phrases_today_' + uidSuffix;
+      const dateKey    = 'voxis_date_' + uidSuffix;
+
+      const today = getTodayISO();
+      const storedDate = localStorage.getItem(dateKey) || '';
+      let phrasesToday = storedDate === today ? parseInt(localStorage.getItem(phrasesKey) || '0') : 0;
+      if (storedDate !== today) {
+        localStorage.setItem(dateKey, today);
+        localStorage.setItem(phrasesKey, '0');
+        phrasesToday = 0;
+      }
+
+      const planRaw = (localStorage.getItem('voxis_plan') || 'free').toLowerCase();
+      const plan    = PLAN_LIMITS[planRaw] ? planRaw : 'free';
+      const limits  = PLAN_LIMITS[plan];
+
+      window._voxisQuota = isMaster()
+        ? { plan: 'master', phrasesToday, limit: 999999, audioSec: 60 }
+        : { plan, phrasesToday, limit: limits.phrases, audioSec: limits.audioSec };
+      
+      updateProgressBar(phrasesToday, isMaster() ? 999999 : limits.phrases);
+      updateStreakUI(0, '');
+      renderTrainingCards([]);
+    }
+
+    // Called after each successful phrase evaluation
+    // scoreNum: 1-10, originalPhrase: what user said, correccion: AI's correction
+    async function recordPhrase(scoreNum, originalPhrase, correccion) {
+      const today  = getTodayISO();
+      const uidSuffix = (window.auth && window.auth.currentUser) 
+        ? window.auth.currentUser.uid 
+        : ('otp_' + (localStorage.getItem('voxis_otp_email') || 'anon').replace(/[^a-z0-9]/gi,'_'));
+
+      const newCount = (window._voxisQuota.phrasesToday || 0) + 1;
+      window._voxisQuota.phrasesToday = newCount;
+      updateProgressBar(newCount, window._voxisQuota.limit);
+
+      localStorage.setItem('voxis_date_' + uidSuffix, today);
+      localStorage.setItem('voxis_phrases_today_' + uidSuffix, String(newCount));
+
+      const db  = window._voxisDB;
+      const uid = window._voxisUID;
+      if (!db || !uid) return;
+
+      try {
+        const ref = window._voxisRef || db.collection('usuarios').doc(uid);
+
+        const userSnap     = await ref.get();
+        const userData     = userSnap.exists ? userSnap.data() : {};
+        const lastTrain    = userData.ultima_fecha_uso || '';
+        const yesterday    = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+        const currentRacha = userData.racha_dias || 0;
+        const newRacha     = lastTrain === yesterday ? currentRacha + 1
+                           : lastTrain === today    ? currentRacha
+                           : 1;
+
+        // Keep a rolling array of last 8 corrections (weak phrases) on the user doc
+        const updatePayload = {
+          frases_usadas_hoy: newCount,
+          ultima_fecha_uso:  today,
+          racha_dias:        newRacha,
+          total_frases:      firebase.firestore.FieldValue.increment(1),
+        };
+
+        // Only record as weak phrase if score < 8 and we have a correction
+        if (correccion && scoreNum < 8) {
+          const entry = { frase: (originalPhrase || '').slice(0,80), correccion: correccion.slice(0,120), score: scoreNum };
+          // Store as JSON string in array to keep it lightweight
+          updatePayload.errores_recientes = firebase.firestore.FieldValue.arrayUnion(JSON.stringify(entry));
+        }
+
+        await ref.set(updatePayload, { merge: true });
+
+        // Trim errores_recientes to last 8 entries
+        const freshSnap = await ref.get();
+        const errores   = freshSnap.exists ? (freshSnap.data().errores_recientes || []) : [];
+        if (errores.length > 8) {
+          await ref.set({ errores_recientes: errores.slice(-8) }, { merge: true });
+        }
+
+        // Save full session doc
+        await db.collection('usuarios').doc(uid).collection('sesiones').add({
+          fecha:      today,
+          frase:      (originalPhrase || '').slice(0, 120),
+          correccion: (correccion || '').slice(0, 160),
+          score:      scoreNum,
+          ts:         firebase.firestore.FieldValue.serverTimestamp(),
+        });
+
+        updateStreakUI(newRacha, today);
+        await checkLogrosDesbloqueados(db, uid, newRacha, newCount);
+
+
+      } catch(e) {
+        console.warn('Firestore save error:', e);
+      }
+    }
+    window.recordPhrase = recordPhrase;
+
+    // ════════════════════════════════════════════
+    //  RECENT SESSIONS
+    // ════════════════════════════════════════════
+    async function loadRecentSessions(db, uid) {
+      try {
+        const snap = await db.collection('usuarios').doc(uid)
+          .collection('sesiones')
+          .orderBy('ts', 'desc')
+          .limit(4)
+          .get();
+
+        const sessions = [];
+        snap.forEach(doc => sessions.push(doc.data()));
+        renderTrainingCards(sessions);
+      } catch(e) {
+        renderTrainingCards([]);
+      }
+    }
+
+    function renderTrainingCards(sessions) {
+      const grid = document.getElementById('training-grid');
+      if (!grid) return;
+      if (!sessions.length) {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#7A84A0;font-size:0.82rem;padding:20px 0;">¡Completa tu primer reto para ver tu historial aquí! 🎯</div>';
+        return;
+      }
+      const scoreColor = s => s >= 8 ? '#6EE7A0' : s >= 5 ? '#FFB347' : '#FF7F50';
+      const fmtDate    = iso => {
+        if (!iso) return '—';
+        const d = new Date(iso + 'T00:00:00');
+        return d.toLocaleDateString('es', { day:'numeric', month:'short' });
+      };
+      grid.innerHTML = sessions.map(s => `
+        <div class="training-card" style="position:relative;">
+          <div class="training-card-date">${fmtDate(s.fecha)}</div>
+          <div style="font-size:1.1rem;font-weight:800;color:${scoreColor(s.score || 0)};">${s.score || '—'}<span style="font-size:0.7rem;color:#7A84A0;">/10</span></div>
+          <div style="font-size:0.7rem;color:#9AA4C0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escHtml(s.frase || '')}">${s.frase ? '"' + s.frase.slice(0,24) + '…"' : 'Reto completado'}</div>
+          ${s.correccion && (s.score || 10) < 8 ? `<div style="font-size:0.68rem;color:#6EE7A0;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escHtml(s.correccion)}">✅ ${s.correccion.slice(0,28)}…</div>` : ''}
+        </div>`).join('');
+    }
+
+    // ════════════════════════════════════════════
+    //  STREAK UI
+    // ════════════════════════════════════════════
+    function updateStreakUI(dias, lastDate) {
+      const badge = document.getElementById('streak-badge');
+      const count = document.getElementById('streak-count');
+      if (!badge || !count) return;
+      count.textContent = ' ' + dias + (dias === 1 ? ' día' : ' días');
+      if (dias >= 30) badge.textContent = '👑';
+      else if (dias >= 7)  badge.textContent = '💎';
+      else if (dias >= 3)  badge.textContent = '🔥';
+      else badge.textContent = '⭐';
+    }
+
+    // ════════════════════════════════════════════
+    //  GAMIFICATION — LOGROS & STICKERS
+    // ════════════════════════════════════════════
+    const LOGROS_CATALOG = [
+      { id:'rookie',      icon:'🌟', name:'Primer Paso',     desc:'Completaste tu primera frase',     check: (d) => (d.total_frases || 0) >= 1  },
+      { id:'en_llamas',   icon:'🔥', name:'En Llamas',       desc:'3 días de racha consecutivos',     check: (d) => (d.racha_dias   || 0) >= 3  },
+      { id:'perfecto',    icon:'💯', name:'Perfeccionista',  desc:'Obtuviste 10/10 en una frase',     check: (d) => d.tuvo_perfecto === true    },
+      { id:'diamante',    icon:'💎', name:'Racha Diamante',  desc:'7 días de racha seguidos',         check: (d) => (d.racha_dias   || 0) >= 7  },
+      { id:'explorador',  icon:'🗺️', name:'Explorador',      desc:'Usaste Fundamentos y Situaciones', check: (d) => d.uso_ambos_modos === true  },
+      { id:'maraton',     icon:'🏃', name:'Maratón',         desc:'50 frases en total',               check: (d) => (d.total_frases || 0) >= 50 },
+      { id:'rey',         icon:'👑', name:'Rey del Idioma',  desc:'30 días de racha',                 check: (d) => (d.racha_dias   || 0) >= 30 },
+    ];
+
+    async function checkLogrosDesbloqueados(db, uid, racha, totalHoy) {
+      try {
+        const ref      = window._voxisRef || db.collection('usuarios').doc(uid);
+        const snap     = await ref.get();
+        const userData = snap.exists ? snap.data() : {};
+        const logrosActuales = userData.logros || [];
+
+        const nuevos = LOGROS_CATALOG.filter(l =>
+          !logrosActuales.includes(l.id) && l.check(userData)
+        );
+
+        if (nuevos.length > 0) {
+          const newIds = nuevos.map(l => l.id);
+          await ref.set({ logros: firebase.firestore.FieldValue.arrayUnion(...newIds) }, { merge: true });
+          window._voxisLogros = [...logrosActuales, ...newIds];
+          updateStickersRow(window._voxisLogros);
+          showLogroPopup(nuevos[0]); // Show the first unlocked achievement
+        }
+      } catch(e) { console.warn('Logros check error:', e); }
+    }
+
+    function showLogroPopup(logro) {
+      const popup = document.getElementById('sticker-popup');
+      if (!popup) return;
+      document.getElementById('popup-icon').textContent  = logro.icon;
+      document.getElementById('popup-title').textContent = '¡' + logro.name + '!';
+      document.getElementById('popup-desc').textContent  = logro.desc;
+      popup.style.display = 'flex';
+    }
+
+    function updateStickersRow(logrosIds) {
+      const row = document.getElementById('stickers-row');
+      if (!row) return;
+      const earned = LOGROS_CATALOG.filter(l => logrosIds.includes(l.id));
+      row.innerHTML = earned.slice(0, 4).map(l =>
+        `<span title="${l.name}">${l.icon}</span>`).join('');
+    }
+
+    window.showStickers = function() {
+      const panel = document.getElementById('logros-panel');
+      const list  = document.getElementById('logros-list');
+      if (!panel || !list) return;
+      const myLogros = window._voxisLogros || [];
+      list.innerHTML = LOGROS_CATALOG.map(l => {
+        const earned = myLogros.includes(l.id);
+        return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;
+          background:${earned ? '#1A2540' : '#0F1826'};border:1px solid ${earned ? '#2E4F8C' : '#1E2A45'};
+          border-radius:12px;opacity:${earned ? 1 : 0.5};">
+          <span style="font-size:1.6rem;">${l.icon}</span>
+          <div>
+            <div style="font-weight:700;color:${earned ? '#FFFFFF' : '#7A84A0'};font-size:0.9rem;">${l.name}</div>
+            <div style="font-size:0.78rem;color:#7A84A0;">${l.desc}</div>
+          </div>
+          ${earned ? '<span style="margin-left:auto;font-size:0.75rem;color:#6EE7A0;">✓ Obtenido</span>' : ''}
+        </div>`;
+      }).join('');
+      panel.style.display = 'flex';
+    };
+
+    // ════════════════════════════════════════════
+    //  DAILY REMINDER (local notification)
+    // ════════════════════════════════════════════
+    function askReminderPermission() {
+      const dismissed = localStorage.getItem('voxis_notif_dismissed');
+      if (dismissed) return;
+      const yn = confirm('🔔 ¿Quieres recibir recordatorios diarios para mantener tu racha?');
+      if (yn) {
+        Notification.requestPermission().then(perm => {
+          if (perm === 'granted') {
+            localStorage.setItem('voxis_notif_on', '1');
+            scheduleReminder();
+          }
+        });
+      } else {
+        localStorage.setItem('voxis_notif_dismissed', '1');
+      }
+    }
+
+    function scheduleReminder() {
+      // Schedule for 7 PM tomorrow (or after 20h if skipped today)
+      const now    = new Date();
+      const target = new Date(now);
+      target.setHours(19, 0, 0, 0);
+      if (target <= now) target.setDate(target.getDate() + 1);
+      const msUntil = target.getTime() - now.getTime();
+      setTimeout(() => {
+        const racha = document.getElementById('streak-count')
+          ? document.getElementById('streak-count').textContent.trim() : '?';
+        new Notification('🎙️ Voxis AI', {
+          body: `¡Es hora de tu práctica! Tu racha actual: ${racha} 🔥`,
+          icon: '/icon-192.png',
+        });
+        scheduleReminder(); // reschedule for next day
+      }, msUntil);
+    }
+
+    if (localStorage.getItem('voxis_notif_on') === '1' && 'Notification' in window) {
+      if (Notification.permission === 'granted') scheduleReminder();
+    }
+
+
+    // ─── FIREBASE: ESTADO DE AUTENTICACIÓN (para Google Sign-In) ───
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        const firstName = user.displayName
+          ? user.displayName.split(' ')[0]
+          : (localStorage.getItem('voxis_user_name') || 'Usuario');
+        loginOverlay.style.display = 'none';
+        showOnboarding(firstName);
+      } else {
+        // Solo mostrar login si no hay sesión OTP activa en localStorage
+        const hasOtpSession = localStorage.getItem('voxis_onboarded');
+        if (!hasOtpSession) {
+          loginOverlay.style.display      = 'flex';
+          otpOverlay.style.display        = 'none';
+          onboardingOverlay.style.display = 'none';
+        }
+      }
+    });
+
+
+
+    // ─── CAMBIAR IDIOMA DESDE SETTINGS ───
+    window.openLangChange = function() {
+      const user = auth.currentUser;
+      const firstName = user
+        ? (user.displayName ? user.displayName.split(' ')[0] : 'Usuario')
+        : (localStorage.getItem('voxis_user_name') || 'Usuario');
+      welcomeName.textContent = '¡Hola, ' + firstName + '!';
+      
+      // Hide name request if already onboarded
+      const hasOnboarded = localStorage.getItem('voxis_onboarded');
+      if (hasOnboarded) {
+        document.getElementById('name-confirm-group').style.display = 'none';
+      }
+
+      onboardingOverlay.style.display = 'flex';
+      document.getElementById('settings-panel').classList.remove('open');
+      settingsOpen = false;
+    };
+
+  } catch(e) {
+    console.warn('Firebase init error:', e);
+  }
+
+  // ─── OTP: NAVEGACIÓN ENTRE CAJAS CON TECLADO ───
+  window.moveFocus = function(index, event) {
+    const val = event.target.value;
+    if (val && index < 4) {
+      document.getElementById('otp' + (index + 1)).focus();
+    } else if (event.key === 'Backspace' && !val && index > 1) {
+      document.getElementById('otp' + (index - 1)).focus();
+    }
+    // Auto-submit when otp4 is filled
+    if (index === 4 && val) {
+      document.getElementById('btn-verify-otp').click();
+    }
+  };
+</script>
+
+<script>
+  // ─── CONFIGURATION ───
+  const API_URL = 'https://voxis-backend.onrender.com';
+
+  // ─── i18n: idioma de la interfaz ───
+  const I18N = {
+    es: { tab_train:"🎤 Entrenar", tab_routes:"📚 Rutas", tab_upgrade:"⭐ Mejorar",
+          greeting:"Hola", new_challenge:"Nuevo Reto",
+          name_confirm_title:"👋 ¿Cómo te llamas?", name_confirm_label:"Tu nombre preferido:", name_confirm_btn:"Confirmar y continuar ✓", name_confirm_sub:"Así es como te saludaremos cada día.", name_confirm_warn:"⚠️ Por favor ingresa tu nombre.",
+          mic_caption:"Toca para hablar en Inglés", mic_sub:"Max 5 segundos",
+          listening:"Escuchando...", speak_now:"Habla ahora",
+          placeholder:"O escribe aquí tu frase en Inglés...",
+          recent:"Entrenamientos recientes", sessions:"entrenamientos",
+          label_original:"📝 Original", label_correction:"✅ Corrección IA", label_pron:"🗣️ Pronunciación",
+          analyzing:"Analizando con IA...", native:"Español",
+          route_title:"Ruta de Estudio IA", fund:"Fundamentos", real:"Situaciones Reales",
+          level:"Nivel", challenge:"Siguiente Reto",
+          up_title:"Desbloquea tu potencial 🚀", up_sub:"Elige el plan perfecto para ti",
+          current_plan:"Plan actual", desc_free:"El punto de partida",
+          most_popular:"⭐ MÁS POPULAR", desc_std:"Todo lo del plan Free +",
+          subscribe:"Suscribirse", desc_pro:"Máxima velocidad e inteligencia IA",
+          up_footer:"🔒 Pagos seguros con Stripe · Cancela cuando quieras",
+          si_lang:"🔄 Cambiar idioma a aprender", si_contact:"📧 Contáctenos", si_logout:"🚪 Cerrar sesión",
+          err_no_voice:"⚠️ Tu navegador no soporta reconocimiento de voz. Usa el campo de texto.",
+          err_listen:"⚠️ No pude escuchar", err_api:"⚠️ No se pudo conectar al servidor. ¿Está corriendo FastAPI?" },
+    en: { tab_train:"🎤 Train", tab_routes:"📚 Routes", tab_upgrade:"⭐ Upgrade",
+          greeting:"Hello", new_challenge:"New Challenge",
+          name_confirm_title:"👋 What's your name?", name_confirm_label:"Your preferred name:", name_confirm_btn:"Confirm and continue ✓", name_confirm_sub:"This is how we'll greet you every day.", name_confirm_warn:"⚠️ Please enter your name.",
+          mic_caption:"Tap to speak in English", mic_sub:"Max 5 seconds",
+          listening:"Listening...", speak_now:"Speak now",
+          placeholder:"Or type your phrase here...",
+          recent:"Recent trainings", sessions:"trainings",
+          label_original:"📝 Original", label_correction:"✅ AI Correction", label_pron:"🗣️ Pronunciation",
+          analyzing:"Analyzing with AI...", native:"English",
+          route_title:"AI Study Path", fund:"Fundamentals", real:"Real Situations",
+          level:"Level", challenge:"Next Challenge",
+          up_title:"Unlock your potential 🚀", up_sub:"Choose the perfect plan for you",
+          current_plan:"Current plan", desc_free:"Your starting point",
+          most_popular:"⭐ MOST POPULAR", desc_std:"Everything in Free +",
+          subscribe:"Subscribe", desc_pro:"Maximum speed and AI intelligence",
+          up_footer:"🔒 Secure payments via Stripe · Cancel anytime",
+          si_lang:"🔄 Change learning language", si_contact:"📧 Contact us", si_logout:"🚪 Log out",
+          err_no_voice:"⚠️ Voice recognition not supported. Use the text field.",
+          err_listen:"⚠️ Could not hear", err_api:"⚠️ Could not connect. Is FastAPI running?" },
+    fr: { tab_train:"🎤 Entraîner", tab_routes:"📚 Parcours", tab_upgrade:"⭐ Améliorer",
+          greeting:"Bonjour", new_challenge:"Nouveau Défi",
+          name_confirm_title:"👋 Comment vous appelez-vous?", name_confirm_label:"Votre prénom:", name_confirm_btn:"Confirmer et continuer ✓", name_confirm_sub:"C'est ainsi que nous vous saluerons chaque jour.", name_confirm_warn:"⚠️ Veuillez entrer votre nom.",
+          mic_caption:"Appuyez pour parler en Anglais", mic_sub:"Max 5 secondes",
+          listening:"Écoute...", speak_now:"Parlez maintenant",
+          placeholder:"Ou écrivez votre phrase ici...",
+          recent:"Entraînements récents", sessions:"formations",
+          label_original:"📝 Original", label_correction:"✅ Correction IA", label_pron:"🗣️ Prononciation",
+          analyzing:"Analyse en cours...", native:"Français",
+          route_title:"Parcours IA", fund:"Fondamentaux", real:"Situations Réelles",
+          level:"Niveau", challenge:"Défi Suivant",
+          up_title:"Débloquez votre potentiel 🚀", up_sub:"Choisissez le plan parfait pour vous",
+          current_plan:"Plan actuel", desc_free:"Votre point de départ",
+          most_popular:"⭐ PLUS POPULAIRE", desc_std:"Tout du plan Gratuit +",
+          subscribe:"S'abonner", desc_pro:"Vitesse maximale et intelligence IA",
+          up_footer:"🔒 Paiements sécurisés via Stripe · Annulez à tout moment",
+          si_lang:"🔄 Changer la langue à apprendre", si_contact:"📧 Nous contacter", si_logout:"🚪 Déconnexion",
+          err_no_voice:"⚠️ Reconnaissance vocale non supportée. Utilisez le champ texte.",
+          err_listen:"⚠️ Impossible d'entendre", err_api:"⚠️ Connexion impossible. FastAPI fonctionne?" },
+    de: { tab_train:"🎤 Trainieren", tab_routes:"📚 Routen", tab_upgrade:"⭐ Upgrade",
+          greeting:"Hallo", new_challenge:"Neue Herausforderung",
+          name_confirm_title:"👋 Wie heißen Sie?", name_confirm_label:"Ihr bevorzugter Name:", name_confirm_btn:"Bestätigen und weiter ✓", name_confirm_sub:"So begrüßen wir Sie jeden Tag.", name_confirm_warn:"⚠️ Bitte geben Sie Ihren Namen ein.",
+          mic_caption:"Tippen zum Sprechen", mic_sub:"Max. 5 Sekunden",
+          listening:"Zuhören...", speak_now:"Jetzt sprechen",
+          placeholder:"Oder Satz eingeben...",
+          recent:"Letzte Trainings", sessions:"Trainings",
+          label_original:"📝 Original", label_correction:"✅ KI-Korrektur", label_pron:"🗣️ Aussprache",
+          analyzing:"Analyse läuft...", native:"Deutsch",
+          route_title:"KI-Lernpfad", fund:"Grundlagen", real:"Reale Situationen",
+          level:"Stufe", challenge:"Nächste Herausforderung",
+          up_title:"Dein Potenzial entfalten 🚀", up_sub:"Wähle den perfekten Plan",
+          current_plan:"Aktueller Plan", desc_free:"Dein Ausgangspunkt",
+          most_popular:"⭐ BELIEBTESTE", desc_std:"Alles aus Gratis +",
+          subscribe:"Abonnieren", desc_pro:"Maximale KI-Geschwindigkeit",
+          up_footer:"🔒 Sichere Zahlungen via Stripe · Jederzeit kündigen",
+          si_lang:"🔄 Lernsprache ändern", si_contact:"📧 Kontakt", si_logout:"🚪 Abmelden",
+          err_no_voice:"⚠️ Spracherkennung nicht unterstützt. Textfeld nutzen.",
+          err_listen:"⚠️ Konnte nicht hören", err_api:"⚠️ Verbindungsfehler. Läuft FastAPI?" },
+    it: { tab_train:"🎤 Allena", tab_routes:"📚 Percorsi", tab_upgrade:"⭐ Migliora",
+          greeting:"Ciao", new_challenge:"Nuova Sfida",
+          name_confirm_title:"👋 Come ti chiami?", name_confirm_label:"Il tuo nome preferito:", name_confirm_btn:"Conferma e continua ✓", name_confirm_sub:"È così che ti saluteremo ogni giorno.", name_confirm_warn:"⚠️ Per favore inserisci il tuo nome.",
+          mic_caption:"Tocca per parlare", mic_sub:"Max 5 secondi",
+          listening:"Ascolto...", speak_now:"Parla ora",
+          placeholder:"O scrivi la tua frase...",
+          recent:"Allenamenti recenti", sessions:"allenamenti",
+          label_original:"📝 Originale", label_correction:"✅ Correzione IA", label_pron:"🗣️ Pronuncia",
+          analyzing:"Analisi in corso...", native:"Italiano",
+          route_title:"Percorso di Studio IA", fund:"Fondamenti", real:"Situazioni Reali",
+          level:"Livello", challenge:"Prossima Sfida",
+          up_title:"Sblocca il tuo potenziale 🚀", up_sub:"Scegli il piano perfetto",
+          current_plan:"Piano attuale", desc_free:"Il tuo punto di partenza",
+          most_popular:"⭐ PIÙ POPOLARE", desc_std:"Tutto del piano Gratis +",
+          subscribe:"Abbonati", desc_pro:"Velocità massima e intelligenza IA",
+          up_footer:"🔒 Pagamenti sicuri via Stripe · Cancella quando vuoi",
+          si_lang:"🔄 Cambia lingua da imparare", si_contact:"📧 Contattaci", si_logout:"🚪 Esci",
+          err_no_voice:"⚠️ Riconoscimento vocale non supportato. Usa il campo testo.",
+          err_listen:"⚠️ Non riesco a sentire", err_api:"⚠️ Connessione fallita. FastAPI attivo?" },
+    pt: { tab_train:"🎤 Treinar", tab_routes:"📚 Rotas", tab_upgrade:"⭐ Melhorar",
+          greeting:"Olá", new_challenge:"Novo Desafio",
+          name_confirm_title:"👋 Como você se chama?", name_confirm_label:"Seu nome preferido:", name_confirm_btn:"Confirmar e continuar ✓", name_confirm_sub:"É assim que vamos te cumprimentar todos os dias.", name_confirm_warn:"⚠️ Por favor insira seu nome.",
+          mic_caption:"Toque para falar", mic_sub:"Máx. 5 segundos",
+          listening:"Ouvindo...", speak_now:"Fale agora",
+          placeholder:"Ou escreva sua frase...",
+          recent:"Treinos recentes", sessions:"treinos",
+          label_original:"📝 Original", label_correction:"✅ Correção IA", label_pron:"🗣️ Pronúncia",
+          analyzing:"Analisando com IA...", native:"Português",
+          route_title:"Rota de Estudo IA", fund:"Fundamentos", real:"Situações Reais",
+          level:"Nível", challenge:"Próximo Desafio",
+          up_title:"Desbloqueie seu potencial 🚀", up_sub:"Escolha o plano perfeito",
+          current_plan:"Plano atual", desc_free:"Seu ponto de partida",
+          most_popular:"⭐ MAIS POPULAR", desc_std:"Tudo do plano Grátis +",
+          subscribe:"Assinar", desc_pro:"Máxima velocidade e inteligência IA",
+          up_footer:"🔒 Pagamentos seguros via Stripe · Cancele a qualquer hora",
+          si_lang:"🔄 Mudar idioma a aprender", si_contact:"📧 Contate-nos", si_logout:"🚪 Sair",
+          err_no_voice:"⚠️ Reconhecimento de voz não suportado. Use o campo de texto.",
+          err_listen:"⚠️ Não consegui ouvir", err_api:"⚠️ Sem conexão. FastAPI rodando?" },
+    zh: { tab_train:"🎤 训练", tab_routes:"📚 路线", tab_upgrade:"⭐ 升级",
+          greeting:"你好", new_challenge:"新挑战",
+          name_confirm_title:"👋 您叫什么名字?", name_confirm_label:"您的首选名字:", name_confirm_btn:"确认并继续 ✓", name_confirm_sub:"这是我们每天问候您的方式。", name_confirm_warn:"⚠️ 请输入您的名字。",
+          mic_caption:"点击说话", mic_sub:"最多5秒",
+          listening:"聆听中...", speak_now:"现在说话",
+          placeholder:"或在此输入短语...",
+          recent:"最近训练", sessions:"训练",
+          label_original:"📝 原文", label_correction:"✅ AI纠正", label_pron:"🗣️ 发音",
+          analyzing:"AI分析中...", native:"中文",
+          route_title:"AI学习路径", fund:"基础", real:"真实情景",
+          level:"级别", challenge:"下一个挑战",
+          up_title:"释放你的潜力 🚀", up_sub:"选择完美计划",
+          current_plan:"当前计划", desc_free:"起点",
+          most_popular:"⭐ 最受欢迎", desc_std:"免费版全部功能+",
+          subscribe:"订阅", desc_pro:"最大速度和AI智能",
+          up_footer:"🔒 Stripe安全支付 · 随时取消",
+          si_lang:"🔄 更改学习语言", si_contact:"📧 联系我们", si_logout:"🚪 登出",
+          err_no_voice:"⚠️ 浏览器不支持语音识别。请使用文本框。",
+          err_listen:"⚠️ 无法听到", err_api:"⚠️ 无法连接。FastAPI运行中？" },
+    ja: { tab_train:"🎤 トレーニング", tab_routes:"📚 ルート", tab_upgrade:"⭐ アップグレード",
+          greeting:"こんにちは", new_challenge:"新チャレンジ",
+          name_confirm_title:"👋 お名前は何ですか?", name_confirm_label:"お好みの名前:", name_confirm_btn:"確認して続ける ✓", name_confirm_sub:"毎日こうしてご挨拶します。", name_confirm_warn:"⚠️ お名前を入力してください。",
+          mic_caption:"タップして話す", mic_sub:"最大5秒",
+          listening:"聞いています...", speak_now:"今話して",
+          placeholder:"またはここに入力...",
+          recent:"最近のトレーニング", sessions:"トレーニング",
+          label_original:"📝 元の文", label_correction:"✅ AI修正", label_pron:"🗣️ 発音",
+          analyzing:"AI分析中...", native:"日本語",
+          route_title:"AI学習パス", fund:"基礎", real:"実際の状況",
+          level:"レベル", challenge:"次のチャレンジ",
+          up_title:"可能性を解き放て 🚀", up_sub:"最適なプランを選択",
+          current_plan:"現在のプラン", desc_free:"出発点",
+          most_popular:"⭐ 最人気", desc_std:"無料プランの全て+",
+          subscribe:"登録", desc_pro:"最大速度とAIインテリジェンス",
+          up_footer:"🔒 Stripeで安全な支払い · いつでもキャンセル",
+          si_lang:"🔄 学習言語の変更", si_contact:"📧 お問い合わせ", si_logout:"🚪 ログアウト",
+          err_no_voice:"⚠️ 音声認識非対応。テキストを使用してください。",
+          err_listen:"⚠️ 聞こえませんでした", err_api:"⚠️ 接続失敗。FastAPI動作中？" },
+    ko: { tab_train:"🎤 훈련", tab_routes:"📚 경로", tab_upgrade:"⭐ 업그레이드",
+          greeting:"안녕하세요", new_challenge:"새 도전",
+          name_confirm_title:"👋 성함이 어떻게 되세요?", name_confirm_label:"선호하는 이름:", name_confirm_btn:"확인하고 계속 ✓", name_confirm_sub:"매일 이렇게 인사드릴게요.", name_confirm_warn:"⚠️ 이름을 입력해주세요.",
+          mic_caption:"탭하여 말하기", mic_sub:"최대 5초",
+          listening:"듣는 중...", speak_now:"지금 말하세요",
+          placeholder:"또는 여기에 입력...",
+          recent:"최근 훈련", sessions:"훈련",
+          label_original:"📝 원문", label_correction:"✅ AI 교정", label_pron:"🗣️ 발음",
+          analyzing:"AI 분석 중...", native:"한국어",
+          route_title:"AI 학습 경로", fund:"기초", real:"실제 상황",
+          level:"레벨", challenge:"다음 도전",
+          up_title:"잠재력을 발휘하세요 🚀", up_sub:"완벽한 플랜을 선택하세요",
+          current_plan:"현재 플랜", desc_free:"시작점",
+          most_popular:"⭐ 가장 인기", desc_std:"무료 플랜의 모든 것+",
+          subscribe:"구독", desc_pro:"최대 속도와 AI 지능",
+          up_footer:"🔒 Stripe 안전 결제 · 언제든지 취소",
+          si_lang:"🔄 학습 언어 변경", si_contact:"📧 문의하기", si_logout:"🚪 로그아웃",
+          err_no_voice:"⚠️ 음성 인식 미지원. 텍스트 필드를 사용하세요.",
+          err_listen:"⚠️ 들을 수 없습니다", err_api:"⚠️ 연결 실패. FastAPI 실행 중?" },
+    ru: { tab_train:"🎤 Тренинг", tab_routes:"📚 Маршруты", tab_upgrade:"⭐ Улучшить",
+          greeting:"Привет", new_challenge:"Новый вызов",
+          name_confirm_title:"👋 Как вас зовут?", name_confirm_label:"Ваше предпочтительное имя:", name_confirm_btn:"Подтвердить и продолжить ✓", name_confirm_sub:"Именно так мы будем приветствовать вас каждый день.", name_confirm_warn:"⚠️ Пожалуйста, введите ваше имя.",
+          mic_caption:"Нажмите, чтобы говорить", mic_sub:"Макс. 5 секунд",
+          listening:"Слушаю...", speak_now:"Говорите сейчас",
+          placeholder:"Или введите фразу...",
+          recent:"Последние тренировки", sessions:"тренировки",
+          label_original:"📝 Оригинал", label_correction:"✅ Исправление ИИ", label_pron:"🗣️ Произношение",
+          analyzing:"Анализ ИИ...", native:"Русский",
+          route_title:"Путь обучения ИИ", fund:"Основы", real:"Реальные ситуации",
+          level:"Уровень", challenge:"Следующий вызов",
+          up_title:"Раскройте свой потенциал 🚀", up_sub:"Выберите идеальный план",
+          current_plan:"Текущий план", desc_free:"Ваша отправная точка",
+          most_popular:"⭐ САМЫЙ ПОПУЛЯРНЫЙ", desc_std:"Всё из бесплатного+",
+          subscribe:"Подписаться", desc_pro:"Максимальная скорость и ИИ",
+          up_footer:"🔒 Безопасные платежи Stripe · Отмена в любое время",
+          si_lang:"🔄 Изменить язык обучения", si_contact:"📧 Связаться", si_logout:"🚪 Выйти",
+          err_no_voice:"⚠️ Голосовой ввод не поддерживается. Используйте текстовое поле.",
+          err_listen:"⚠️ Не могу слышать", err_api:"⚠️ Нет соединения. FastAPI запущен?" },
+  };
+
+  const EXTRA = {
+    es: { info_t:"🚀 Máxima Velocidad e Inteligencia", info_d:"Al subir a un nivel de paga, tu cuenta se migra a servidores dedicados con modelos de IA más avanzados.", plan_word:"Plan", lang_eng:"Inglés", p_free:"5 frases/día", p_std:"20 frases/día", p_pro:"100 frases/día", lv1:"Saludos", lv2:"Números", lv3:"Colores", lv4:"Familia", lv5:"Días y Meses", mo:"/mes",
+          l_div:"o continúa con email", l_id:"Identifícate para comenzar.", l_em:"Correo:", l_n:"Nombres:", l_a:"Apellidos:", l_w:"WhatsApp:", l_pl:"Elige tu plan inicial:", l_btn:"Entrar / Registrarse", l_tc:"Acepto los Términos, Condiciones y Política de Privacidad", l_tclink:"📄 Ver Términos y Condiciones", opt_free:"Plan FREE ($0): 5 frases/día", opt_std:"Plan STANDARD ($3/mes): 20 frases/día", opt_pro:"Plan PRO ($8/mes): 100 frases/día" },
+    en: { info_t:"🚀 Maximum Speed & Intelligence", info_d:"When upgrading to a paid tier, your account is migrated to dedicated servers with more advanced AI models.", plan_word:"Plan", lang_eng:"English", p_free:"5 sentences/day", p_std:"20 sentences/day", p_pro:"100 sentences/day", lv1:"Greetings", lv2:"Numbers", lv3:"Colors", lv4:"Family", lv5:"Days & Months", mo:"/month",
+          l_div:"or continue with email", l_id:"Log in to start.", l_em:"Email:", l_n:"First Name:", l_a:"Last Name:", l_w:"WhatsApp:", l_pl:"Choose starting plan:", l_btn:"Login / Register", l_tc:"I accept the Terms and Privacy Policy", l_tclink:"📄 View Terms and Conditions", opt_free:"FREE Plan ($0): 5 phrases/day", opt_std:"STANDARD Plan ($3/mo): 20 phrases/day", opt_pro:"PRO Plan ($8/mo): 100 phrases/day" },
+    fr: { info_t:"🚀 Vitesse et Intelligence Maximales", info_d:"En passant à un niveau payant, votre compte est migré vers des serveurs dédiés avec des modèles IA plus avancés.", plan_word:"Plan", lang_eng:"Anglais", p_free:"5 phrases/jour", p_std:"20 phrases/jour", p_pro:"100 phrases/jour", lv1:"Salutations", lv2:"Nombres", lv3:"Couleurs", lv4:"Famille", lv5:"Jours et Mois", mo:"/mois",
+          l_div:"ou continuer avec email", l_id:"Connectez-vous.", l_em:"E-mail:", l_n:"Prénoms:", l_a:"Noms:", l_w:"WhatsApp:", l_pl:"Forfait:", l_btn:"Connexion / Inscription", l_tc:"J'accepte les conditions", l_tclink:"📄 Voir les conditions", opt_free:"Plan FREE (0$): 5/jour", opt_std:"Plan STANDARD (3$/mois): 20/jour", opt_pro:"Plan PRO (8$/mois): 100/jour" },
+    de: { info_t:"🚀 Maximale Geschwindigkeit & Intelligenz", info_d:"Bei einem Upgrade auf eine kostenpflichtige Stufe wird Ihr Konto auf dedizierte Server mit fortschrittlicheren KI-Modellen migriert.", plan_word:"Plan", lang_eng:"Englisch", p_free:"5 Sätze/Tag", p_std:"20 Sätze/Tag", p_pro:"100 Sätze/Tag", lv1:"Begrüßungen", lv2:"Zahlen", lv3:"Farben", lv4:"Familie", lv5:"Tage und Monate", mo:"/Monat",
+          l_div:"oder mit E-Mail", l_id:"Melden Sie sich an.", l_em:"E-Mail:", l_n:"Vorname:", l_a:"Nachname:", l_w:"WhatsApp:", l_pl:"Plan wählen:", l_btn:"Anmelden / Registrieren", l_tc:"Ich akzeptiere die AGB", l_tclink:"📄 AGB anzeigen", opt_free:"FREE-Plan (0$): 5/Tag", opt_std:"STANDARD-Plan (3$/Mo): 20/Tag", opt_pro:"PRO-Plan (8$/Mo): 100/Tag" },
+    it: { info_t:"🚀 Massima Velocità e Intelligenza", info_d:"Passando a un piano a pagamento, il tuo account viene migrato su server dedicati con modelli IA più avanzati.", plan_word:"Piano", lang_eng:"Inglese", p_free:"5 frasi/giorno", p_std:"20 frasi/giorno", p_pro:"100 frasi/giorno", lv1:"Saluti", lv2:"Numeri", lv3:"Colori", lv4:"Famiglia", lv5:"Giorni e Mesi", mo:"/mese",
+          l_div:"o continua con email", l_id:"Accedi per iniziare.", l_em:"Email:", l_n:"Nome:", l_a:"Cognome:", l_w:"WhatsApp:", l_pl:"Scegli piano:", l_btn:"Accedi / Registrati", l_tc:"Accetto i Termini", l_tclink:"📄 Visualizza Termini", opt_free:"Piano FREE ($0): 5/giorno", opt_std:"Piano STANDARD ($3/mese): 20/giorno", opt_pro:"Piano PRO ($8/mese): 100/giorno" },
+    pt: { info_t:"🚀 Máxima Velocidade e Inteligência", info_d:"Ao subir para um nível pago, sua conta é migrada para servidores dedicados com modelos de IA mais avançados.", plan_word:"Plano", lang_eng:"Inglês", p_free:"5 frases/dia", p_std:"20 frases/dia", p_pro:"100 frases/dia", lv1:"Saudações", lv2:"Números", lv3:"Cores", lv4:"Família", lv5:"Dias e Meses", mo:"/mês",
+          l_div:"ou continue com e-mail", l_id:"Faça login.", l_em:"E-mail:", l_n:"Nome:", l_a:"Sobrenome:", l_w:"WhatsApp:", l_pl:"Escolha o plano:", l_btn:"Entrar / Registrar", l_tc:"Aceito os Termos", l_tclink:"📄 Ver Termos", opt_free:"Plano FREE ($0): 5/dia", opt_std:"Plano STANDARD ($3/mês): 20/dia", opt_pro:"Plano PRO ($8/mês): 100/dia" },
+    zh: { info_t:"🚀 最大速度与智能", info_d:"升级到付费层后，您的帐户将迁移到配备更高级 AI 模型的专用服务器。", plan_word:"计划", lang_eng:"英语", p_free:"5句/天", p_std:"20句/天", p_pro:"100句/天", lv1:"问候", lv2:"数字", lv3:"颜色", lv4:"家庭", lv5:"日期和月份", mo:"/月",
+          l_div:"或使用电子邮件", l_id:"登录以开始。", l_em:"电子邮件:", l_n:"名:", l_a:"姓:", l_w:"WhatsApp:", l_pl:"选择计划:", l_btn:"登录 / 注册", l_tc:"我接受条款", l_tclink:"📄 查看条款", opt_free:"FREE ($0): 5句/天", opt_std:"STANDARD ($3/月): 20句/天", opt_pro:"PRO ($8/月): 100句/天" },
+    ja: { info_t:"🚀 最大の速度とインテリジェンス", info_d:"有料ティアにアップグレードすると、より高度なAIモデルを搭載した専用サーバーにアカウントが移行されます。", plan_word:"プラン", lang_eng:"英語", p_free:"5フレーズ/日", p_std:"20フレーズ/日", p_pro:"100フレーズ/日", lv1:"挨拶", lv2:"数字", lv3:"色", lv4:"家族", lv5:"曜日と月", mo:"/月",
+          l_div:"またはEメール", l_id:"ログイン", l_em:"Eメール:", l_n:"名:", l_a:"姓:", l_w:"WhatsApp:", l_pl:"プラン:", l_btn:"ログイン / 登録", l_tc:"同意します", l_tclink:"📄 規約", opt_free:"FREE ($0): 5回", opt_std:"STANDARD ($3/月): 20回", opt_pro:"PRO ($8/月): 100回" },
+    ko: { info_t:"🚀 최대 속도 및 지능", info_d:"유료 플랜으로 업그레이드하면 계정이 더욱 진보된 AI 모델을 갖춘 전용 서버로 마이그레이션됩니다.", plan_word:"플랜", lang_eng:"영어", p_free:"5 문장/일", p_std:"20 문장/일", p_pro:"100 문장/일", lv1:"인사", lv2:"숫자", lv3:"색깔", lv4:"가족", lv5:"요일과 월", mo:"/월",
+          l_div:"또는 이메일", l_id:"로그인", l_em:"이메일:", l_n:"이름:", l_a:"성:", l_w:"WhatsApp:", l_pl:"플랜:", l_btn:"로그인 / 가입", l_tc:"동의합니다", l_tclink:"📄 약관", opt_free:"FREE ($0): 5번", opt_std:"STANDARD ($3/월): 20번", opt_pro:"PRO ($8/월): 100번" },
+    ru: { info_t:"🚀 Максимальная скорость и интеллект", info_d:"При переходе на платный уровень ваш аккаунт переносится на выделенные серверы с более продвинутыми моделями ИИ.", plan_word:"План", lang_eng:"Английский", p_free:"5 фраз/день", p_std:"20 фраз/день", p_pro:"100 фраз/день", lv1:"Приветствия", lv2:"Числа", lv3:"Цвета", lv4:"Семья", lv5:"Дни и месяцы", mo:"/мес",
+          l_div:"или по почте", l_id:"Войдите.", l_em:"Почта:", l_n:"Имя:", l_a:"Фамилия:", l_w:"WhatsApp:", l_pl:"План:", l_btn:"Вход / Регистрация", l_tc:"Я принимаю Условия", l_tclink:"📄 Условия", opt_free:"FREE ($0): 5", opt_std:"STANDARD ($3/мес): 20", opt_pro:"PRO ($8/мес): 100" },
+  };
+  for (let k in EXTRA) if(I18N[k]) Object.assign(I18N[k], EXTRA[k]);
+
+  let currentLang = 'es';
+
+  function changeLang(code) {
+    currentLang = code;
+    const t = I18N[code] || I18N['es'];
+
+    const sel = document.getElementById('lang-select');
+    const disp = document.getElementById('lang-display');
+    if (sel && disp) disp.textContent = sel.options[sel.selectedIndex].text;
+
+    // ── TABS ──
+    document.getElementById('tab-train').textContent   = t.tab_train;
+    document.getElementById('tab-routes').textContent  = t.tab_routes;
+    document.getElementById('tab-upgrade').textContent = t.tab_upgrade;
+
+    // ── SCREEN 1: ENTRENAR ──
+    if (!micActive) {
+      document.getElementById('mic-caption').textContent = t.mic_caption;
+      document.getElementById('mic-sub').textContent     = t.mic_sub;
+    }
+    const inp = document.getElementById('text-input');
+    if (inp) inp.placeholder = t.placeholder;
+    const secRecent = document.getElementById('section-recent');
+    if (secRecent) secRecent.textContent = t.recent;
+    document.querySelectorAll('.sessions-label').forEach(el => { el.textContent = t.sessions; });
+    const progLabel = document.getElementById('progress-label');
+    if (progLabel) {
+      // Don't overwrite real usage — just keep whatever is there
+    }
+
+    const greetPlan = document.getElementById('greet-plan-word');
+    if (greetPlan) greetPlan.textContent = t.plan_word;
+    const greetLang = document.getElementById('greet-lang');
+    if (greetLang) greetLang.textContent = t.lang_eng;
+
+    // ── SCREEN 2: RUTAS ──
+    const routesTitle = document.getElementById('routes-title');
+    if (routesTitle) routesTitle.textContent = '\uD83D\uDCDA ' + t.route_title;
+    const btnFundTxt = document.getElementById('btn-fund-txt');
+    if (btnFundTxt) btnFundTxt.textContent = t.fund;
+    const btnRealTxt = document.getElementById('btn-real-txt');
+    if (btnRealTxt) btnRealTxt.textContent = t.real;
+    const subFund = document.getElementById('subsection-fund');
+    if (subFund) subFund.textContent = '\uD83E\uDDF1 ' + t.fund;
+    const levelWord = t.level;
+    ['lv1-num','lv2-num','lv3-num','lv4-num','lv5-num'].forEach((id,i) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = levelWord + ' ' + (i+1) + '/20:';
+    });
+    
+    ['lv1','lv2','lv3','lv4','lv5'].forEach(lv => {
+      const el = document.getElementById(lv + '-name');
+      if (el) el.textContent = t[lv];
+    });
+
+    const btnChallenge = document.getElementById('btn-challenge');
+    if (btnChallenge) btnChallenge.textContent = '\uD83D\uDE80 ' + t.challenge;
+
+    // ── RESULT CARD / RESPONSES ──
+    const resOrig = document.getElementById('res-lbl-orig');
+    if (resOrig) resOrig.textContent = t.label_original;
+    // We only update the text node of the correction label so we don't accidentally erase the TTS button!
+    const resCorr = document.getElementById('res-lbl-corr');
+    if (resCorr && resCorr.childNodes.length > 0) {
+      resCorr.childNodes[0].nodeValue = t.label_correction + ' ';
+    }
+    const resPron = document.getElementById('res-lbl-pron');
+    if (resPron) resPron.textContent = t.label_pron;
+
+    // ── SCREEN 3: MEJORAR ──
+    const upTitle = document.getElementById('up-title');
+    if (upTitle) upTitle.textContent = t.up_title;
+    const upSub = document.getElementById('up-sub');
+    if (upSub) upSub.textContent = t.up_sub;
+    const badgeCurrent = document.getElementById('badge-current');
+    if (badgeCurrent) badgeCurrent.textContent = t.current_plan;
+    const descFree = document.getElementById('desc-free');
+    if (descFree) descFree.textContent = t.desc_free;
+    const badgePop = document.getElementById('badge-popular');
+    if (badgePop) badgePop.textContent = t.most_popular;
+    const descStd = document.getElementById('desc-std');
+    if (descStd) descStd.textContent = t.desc_std;
+    const btnStd = document.getElementById('btn-std');
+    if (btnStd) btnStd.textContent = t.subscribe + ' $3' + t.mo;
+    const descPro = document.getElementById('desc-pro');
+    if (descPro) descPro.textContent = t.desc_pro;
+    const btnPro = document.getElementById('btn-pro');
+    if (btnPro) btnPro.textContent = t.subscribe + ' $8' + t.mo;
+    const upFooter = document.getElementById('up-footer');
+    if (upFooter) upFooter.textContent = t.up_footer;
+
+    const stdPrice = document.getElementById('std-price');
+    if (stdPrice) stdPrice.textContent = '$3' + t.mo;
+    const proPrice = document.getElementById('pro-price');
+    if (proPrice) proPrice.textContent = '$8' + t.mo;
+
+    const pf = document.getElementById('phrases-free');
+    if (pf) pf.textContent = t.p_free;
+    const ps = document.getElementById('phrases-std');
+    if (ps) ps.textContent = t.p_std;
+    const pp = document.getElementById('phrases-pro');
+    if (pp) pp.textContent = t.p_pro;
+    const infoT = document.getElementById('info-title');
+    if (infoT) infoT.textContent = t.info_t;
+    const infoD = document.getElementById('info-desc');
+    if (infoD) infoD.textContent = t.info_d;
+
+    // ── LANDING PAGE UI ──
+    const lDiv = document.getElementById('landing-divider'); if (lDiv) lDiv.textContent = t.l_div;
+    const lId  = document.getElementById('landing-form-title'); if (lId) lId.textContent = t.l_id;
+    const lEm  = document.getElementById('lbl-email'); if (lEm) lEm.textContent = t.l_em;
+    const lN   = document.getElementById('lbl-names'); if (lN) lN.textContent = t.l_n;
+    const lA   = document.getElementById('lbl-lastnames'); if (lA) lA.textContent = t.l_a;
+    const lW   = document.getElementById('lbl-wa'); if (lW) lW.textContent = t.l_w;
+    const lPl  = document.getElementById('landing-plan-title'); if (lPl) lPl.textContent = t.l_pl;
+    const lBtn = document.getElementById('btn-manual-txt'); if (lBtn) lBtn.textContent = t.l_btn;
+    const lTc  = document.getElementById('landing-tc-check'); if (lTc) lTc.textContent = t.l_tc;
+    const lTcl = document.getElementById('landing-tc-link'); if (lTcl) lTcl.textContent = t.l_tclink;
+    const oF   = document.getElementById('opt-free'); if (oF) oF.textContent = t.opt_free;
+    const oS   = document.getElementById('opt-std'); if (oS) oS.textContent = t.opt_std;
+    const oP   = document.getElementById('opt-pro'); if (oP) oP.textContent = t.opt_pro;
+
+    // ── SETTINGS PANEL ──
+    const siLang    = document.getElementById('si-lang-txt');
+    const siContact = document.getElementById('si-contact-txt');
+    const siLogout  = document.getElementById('si-logout-txt');
+    if (siLang)    siLang.textContent    = t.si_lang;
+    if (siContact) siContact.textContent = t.si_contact;
+    if (siLogout)  siLogout.textContent  = t.si_logout;
+  }
+
+  // ─── SETTINGS PANEL TOGGLE ───
+  let settingsOpen = false;
+  function toggleSettings() {
+    settingsOpen = !settingsOpen;
+    document.getElementById('settings-panel').classList.toggle('open', settingsOpen);
+  }
+  // Close panel when clicking outside
+  document.addEventListener('click', (e) => {
+    const wrapper = document.getElementById('settings-btn');
+    const panel   = document.getElementById('settings-panel');
+    if (settingsOpen && !wrapper.contains(e.target) && !panel.contains(e.target)) {
+      settingsOpen = false;
+      panel.classList.remove('open');
+    }
+  });
+  function doLogout(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    settingsOpen = false;
+    document.getElementById('settings-panel').classList.remove('open');
+
+    // Delegate to the global appLogout function scoped inside the Firebase block
+    if (typeof window.appLogout === 'function') {
+      window.appLogout();
+    } else {
+      // Ultimate fallback
+      ['voxis_onboarded','voxis_target_lang','voxis_user_name',
+       'voxis_otp_email','voxis_date','voxis_phrases_today'].forEach(k => localStorage.removeItem(k));
+      window.location.replace(window.location.pathname);
+    }
+  }
+
+
+  // ─── TAB SWITCHING ───
+  const tabs   = ['train', 'routes', 'upgrade'];
+  const labels = { train: '', routes: 'ACTIVE', upgrade: '' };
+
+  function switchTab(name) {
+    tabs.forEach(t => {
+      document.getElementById('tab-' + t).classList.toggle('active', t === name);
+      document.getElementById('screen-' + t).classList.toggle('active', t === name);
+    });
+    document.getElementById('active-label').textContent = labels[name] || '';
+    // Progress bar is always visible on all tabs
+  }
+
+  // ─── MODE TOGGLE (Rutas) ───
+  let currentMode = 'fund';
+  let challengeAudioText = '';
+  let challengeAudioLang = 'en-US';
+  let challengeMicActive = false;
+  let challengeRecognition = null;
+
+  function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('btn-fund').classList.toggle('active', mode === 'fund');
+    document.getElementById('btn-real').classList.toggle('active', mode === 'real');
+    document.getElementById('challenge-area').style.display = 'none';
+    document.getElementById('challenge-result').innerHTML = '';
+    const t_mode = I18N[currentLang] || I18N['es'];
+    document.getElementById('btn-challenge').textContent = '🚀 ' + (t_mode.challenge || 'Siguiente Reto');
+
+    const subFund = document.getElementById('subsection-fund');
+    if (subFund) {
+        if(mode === 'fund') {
+            subFund.textContent = '🧱 ' + t_mode.fund;
+            subFund.style.display = 'block';
+        } else {
+            subFund.style.display = 'none';
+        }
+    }
+  }
+
+  // ─── CHALLENGE MIC BUTTON ───
+  function toggleChallengeMic() {
+    if (challengeMicActive) {
+      // Stop recording
+      if (challengeRecognition) challengeRecognition.stop();
+      return;
+    }
+
+    const btn   = document.getElementById('challenge-mic-btn');
+    const label = document.getElementById('challenge-mic-label');
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      label.textContent = '⚠️ Tu navegador no soporta voz. Habla en el micro principal.';
+      return;
+    }
+
+    const targetLangCode = localStorage.getItem('voxis_target_lang') || 'en';
+    const ttsLangMap = {
+      'en':'en-US','es':'es-ES','fr':'fr-FR','de':'de-DE',
+      'it':'it-IT','pt':'pt-BR','zh':'zh-CN','ja':'ja-JP','ko':'ko-KR','ru':'ru-RU'
+    };
+
+    challengeRecognition = new SpeechRecognition();
+    challengeRecognition.lang = ttsLangMap[targetLangCode] || 'en-US';
+    challengeRecognition.interimResults = false;
+    challengeRecognition.maxAlternatives = 1;
+
+    challengeRecognition.onstart = () => {
+      challengeMicActive = true;
+      btn.style.background = 'linear-gradient(135deg,#e03010,#b02000)';
+      btn.style.boxShadow  = '0 4px 20px rgba(200,50,20,0.7)';
+      btn.textContent      = '🔴';
+      label.textContent    = 'Escuchando...';
+    };
+
+    challengeRecognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      label.textContent = '" ' + transcript + ' "';
+      submitChallengeAnswer(transcript);
+    };
+
+    challengeRecognition.onerror = (event) => {
+      label.textContent = '⚠️ No te escuché. Intenta de nuevo.';
+      resetChallengeMic();
+    };
+
+    challengeRecognition.onend = () => {
+      resetChallengeMic();
+    };
+
+    challengeRecognition.start();
+  }
+
+  function resetChallengeMic() {
+    challengeMicActive = false;
+    const btn   = document.getElementById('challenge-mic-btn');
+    const label = document.getElementById('challenge-mic-label');
+    if (btn) {
+      btn.style.background = '';
+      btn.style.boxShadow  = '';
+      btn.textContent      = '🎙️';
+    }
+    if (label) label.textContent = 'Presiona para hablar';
+  }
+
+  // ─── MIC BUTTON STATE ───
+  let micActive = false;
+
+  function toggleMic() {
+    micActive = !micActive;
+    const btn     = document.getElementById('mic-btn');
+    const caption = document.getElementById('mic-caption');
+    const sub     = document.getElementById('mic-sub');
+
+    if (micActive) {
+      btn.style.background = 'linear-gradient(135deg, #e03010, #b02000)';
+      btn.style.boxShadow  = '0 8px 32px rgba(200,50,20,0.7), 0 0 0 8px rgba(200,50,20,0.2)';
+      caption.textContent  = 'Escuchando...';
+      sub.textContent      = 'Habla ahora';
+      startBrowserAudio();
+    } else {
+      const targetLangName = document.getElementById('greet-lang') ? document.getElementById('greet-lang').textContent : 'Inglés';
+      btn.style.background = '';
+      btn.style.boxShadow  = '';
+      caption.textContent  = 'Toca para hablar en ' + targetLangName;
+      sub.textContent      = 'Max 5 segundos';
+      stopBrowserAudio();
+    }
+  }
+
+  // ─── BROWSER SPEECH RECOGNITION ───
+  let recognition = null;
+  let lastTranscript = '';
+
+  // Data map for Speech-to-Text lang codes based on target language
+  const sttLangMap = {
+    'en': 'en-US', 'es': 'es-ES', 'fr': 'fr-FR', 'de': 'de-DE',
+    'it': 'it-IT', 'pt': 'pt-BR', 'zh': 'zh-CN', 'ja': 'ja-JP',
+    'ko': 'ko-KR', 'ru': 'ru-RU'
+  };
+
+  function startBrowserAudio() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showResult(null, '⚠️ Tu navegador no soporta reconocimiento de voz. Usa el campo de texto abajo.');
+      return;
+    }
+    
+    const targetLangCode = localStorage.getItem('voxis_target_lang') || 'en';
+    const targetLangName = document.getElementById('greet-lang') ? document.getElementById('greet-lang').textContent : 'Inglés';
+
+    recognition = new SpeechRecognition();
+    recognition.lang = sttLangMap[targetLangCode] || 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event) => {
+      lastTranscript = event.results[0][0].transcript;
+      document.getElementById('text-input').value = lastTranscript;
+      evaluatePhrase(lastTranscript);
+    };
+    recognition.onerror = (e) => {
+      showResult(null, '⚠️ No pude escuchar: ' + e.error + '. Intenta escribir en el campo de texto.');
+      micActive = false;
+      document.getElementById('mic-btn').style.background = '';
+      document.getElementById('mic-caption').textContent  = 'Toca para hablar en ' + targetLangName;
+      document.getElementById('mic-sub').textContent      = 'Max 5 segundos';
+    };
+    recognition.onend = () => {
+      micActive = false;
+      document.getElementById('mic-btn').style.background = '';
+      document.getElementById('mic-caption').textContent  = 'Toca para hablar en ' + targetLangName;
+      document.getElementById('mic-sub').textContent      = 'Max 5 segundos';
+    };
+    recognition.start();
+    // Auto-stop after plan's audio limit
+    const audioSec = (window._voxisQuota && window._voxisQuota.audioSec) || 5;
+    setTimeout(() => { if (recognition) recognition.stop(); }, audioSec * 1000);
+  }
+
+  function stopBrowserAudio() {
+    if (recognition) recognition.stop();
+  }
+
+  // ─── API CALL ───
+  async function evaluatePhrase(phrase) {
+    if (!phrase || phrase.trim() === '') return;
+    
+    // Interceptar código maestro
+    if (typeof checkAdminCode === 'function' && checkAdminCode(phrase)) return;
+
+    // ── QUOTA CHECK ──
+    const quota = window._voxisQuota || { phrasesToday:0, limit:5, plan:'free' };
+    if (quota.phrasesToday >= quota.limit) {
+      const planName = quota.plan === 'free' ? 'FREE' : quota.plan === 'standard' ? 'STANDARD' : 'PRO';
+      showResult(null, `⚠️ Alcanzaste el límite de ${quota.limit} frases/día del plan ${planName}. ¡Vuelve mañana o mejora tu plan! 🚀`);
+      return;
+    }
+
+    showLoading();
+    try {
+      const targetLangUrl = localStorage.getItem('voxis_target_lang') || 'en';
+      
+      const langNames = {
+        'en': 'Inglés', 'es': 'Español', 'fr': 'Francés', 'de': 'Alemán',
+        'it': 'Italiano', 'pt': 'Portugués', 'zh': 'Mandarín', 'ja': 'Japonés',
+        'ko': 'Coreano', 'ru': 'Ruso'
+      };
+      
+      const targetLangName = langNames[targetLangUrl] || 'Inglés';
+      const nativeLangName = langNames[currentLang] || 'Español';
+
+      const resp = await fetch(API_URL + '/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          phrase: phrase.trim(),
+          idioma_aprender: targetLangName,
+          idioma_nativo: nativeLangName
+        })
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const data = await resp.json();
+      if (!data.error) {
+        const scoreNum = parseInt(data.puntuacion) || 0;
+        if (window.recordPhrase) window.recordPhrase(scoreNum, phrase.trim(), data.correccion || '');
+        if (scoreNum === 10 && window._voxisRef) {
+          window._voxisRef.set({ tuvo_perfecto: true }, { merge: true }).catch(() => {});
+        }
+      }
+      showResult(data);
+    } catch (err) {
+      showResult(null, '⚠️ No se pudo conectar al servidor. ¿Está corriendo FastAPI en el puerto 8000?');
+    }
+  }
+
+  // ─── SEND FROM TEXT INPUT ───
+  function sendText() {
+    const val = document.getElementById('text-input').value;
+    evaluatePhrase(val);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const inp = document.getElementById('text-input');
+    if (inp) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendText(); });
+  });
+
+  // ─── CHALLENGE FLOW ───
+  async function startChallenge() {
+    const btn = document.getElementById('btn-challenge');
+    btn.disabled = true;
+    btn.textContent = '⏳ Generando reto...';
+
+    const targetLangCode = localStorage.getItem('voxis_target_lang') || 'en';
+    const langNames = {
+      'en': 'Inglés', 'es': 'Español', 'fr': 'Francés', 'de': 'Alemán',
+      'it': 'Italiano', 'pt': 'Portugués', 'zh': 'Mandarín', 'ja': 'Japonés',
+      'ko': 'Coreano', 'ru': 'Ruso'
+    };
+    const ttsLangMap = {
+      'en': 'en-US', 'es': 'es-ES', 'fr': 'fr-FR', 'de': 'de-DE',
+      'it': 'it-IT', 'pt': 'pt-BR', 'zh': 'zh-CN', 'ja': 'ja-JP',
+      'ko': 'ko-KR', 'ru': 'ru-RU'
+    };
+    const topics = ['Saludos','Pronombres','Verbos básicos','Números','Colores','Comida','Familia',
+      'Días y Meses','Ropa','Cuerpo','Animales','Profesiones','Clima','Hogar','Emociones',
+      'Verbos de acción','Transporte','Ciudad','La Hora','Rutina'];
+    const tema = currentMode === 'fund'
+      ? (topics[Math.floor(Math.random() * topics.length)])
+      : 'Situación de la vida real';
+
+    challengeAudioLang = ttsLangMap[targetLangCode] || 'en-US';
+
+    // ── Load user's recent errors for personalized AI challenge ──
+    let erroresHint = '';
+    try {
+      if (window._voxisRef) {
+        const snap = await window._voxisRef.get();
+        const errores = snap.exists ? (snap.data().errores_recientes || []) : [];
+        if (errores.length > 0) {
+          // Parse last 4 errors and pass them as a hint string
+          const parsed = errores.slice(-4).map(e => { try { return JSON.parse(e); } catch { return null; } }).filter(Boolean);
+          if (parsed.length > 0) {
+            erroresHint = parsed.map(e => `"${e.frase}" → ${e.correccion}`).join('; ');
+          }
+        }
+      }
+    } catch(e) { /* silently fail — erroresHint stays empty */ }
+
+    try {
+      const resp = await fetch(API_URL + '/challenge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          modo: currentMode,
+          tema: tema,
+          idioma_aprender: langNames[targetLangCode] || 'Inglés',
+          idioma_nativo: ({'es':'Español','en':'Inglés','fr':'Francés','de':'Alemán',
+            'it':'Italiano','pt':'Portugués','zh':'Mandarín','ja':'Japonés','ko':'Coreano','ru':'Ruso'})[currentLang] || 'Español',
+          errores_hint: erroresHint  // ← NEW: user's past weak phrases for personalization
+        })
+      });
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+
+      document.getElementById('challenge-text').innerHTML = data.reto.replace(/\n/g, '<br>');
+      challengeAudioText = data.frase_audio || '';
+      const ci = document.getElementById('challenge-input'); if(ci) ci.value = '';
+      document.getElementById('challenge-result').innerHTML = '';
+      document.getElementById('challenge-area').style.display = 'block';
+      // Mantiene el boton oficial de Siguiente Reto en lugar del temporal "Nuevo Reto"
+      const t_mode = I18N[currentLang] || I18N['es'];
+      btn.textContent = '🔄 ' + (t_mode.challenge || 'Siguiente Reto');
+
+    } catch(err) {
+      const t_mode = I18N[currentLang] || I18N['es'];
+      btn.textContent = '🚀 ' + (t_mode.challenge || 'Siguiente Reto');
+      document.getElementById('challenge-result').innerHTML =
+        '<div style="color:#FF7F50;font-size:0.85rem;margin-top:8px;">⚠️ ' + (err.message || 'Error al conectar con el servidor') + '</div>';
+      document.getElementById('challenge-area').style.display = 'block';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function playChallengeAudio() {
+    if (challengeAudioText) playAudio(challengeAudioText, challengeAudioLang);
+  }
+
+  async function submitChallengeAnswer(answer) {
+    if (!answer || !answer.trim()) return;
+    answer = answer.trim();
+    resetChallengeMic();
+
+    // ── QUOTA CHECK ──
+    const quota = window._voxisQuota || { phrasesToday:0, limit:5, plan:'free' };
+    if (quota.phrasesToday >= quota.limit) {
+      const planName = quota.plan === 'free' ? 'FREE' : quota.plan === 'standard' ? 'STANDARD' : 'PRO';
+      document.getElementById('challenge-result').innerHTML =
+        `<div style="color:#FF7F50;font-size:0.85rem;padding:10px 0;">⚠️ Límite de ${quota.limit} frases/día (plan ${planName}) alcanzado. ¡Vuelve mañana o mejora! 🚀</div>`;
+      return;
+    }
+
+    const resultBox = document.getElementById('challenge-result');
+    resultBox.innerHTML = '<div style="text-align:center;padding:10px;color:#7A84A0;"><div class="spinner"></div><div style="margin-top:8px;font-size:0.8rem;">Evaluando...</div></div>';
+
+    const targetLangCode = localStorage.getItem('voxis_target_lang') || 'en';
+    const langNames = {
+      'en':'Inglés','es':'Español','fr':'Francés','de':'Alemán',
+      'it':'Italiano','pt':'Portugués','zh':'Mandarín','ja':'Japonés','ko':'Coreano','ru':'Ruso'
+    };
+    const nativeLangMap = {
+      'es':'Español','en':'Inglés','fr':'Francés','de':'Alemán',
+      'it':'Italiano','pt':'Portugués','zh':'Mandarín','ja':'Japonés','ko':'Coreano','ru':'Ruso'
+    };
+    const ttsLangMap = {
+      'en':'en-US','es':'es-ES','fr':'fr-FR','de':'de-DE',
+      'it':'it-IT','pt':'pt-BR','zh':'zh-CN','ja':'ja-JP','ko':'ko-KR','ru':'ru-RU'
+    };
+
+    try {
+      const resp = await fetch(API_URL + '/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phrase: answer,
+          idioma_aprender: langNames[targetLangCode] || 'Inglés',
+          idioma_nativo: nativeLangMap[currentLang] || 'Español',
+          reto_esperado: challengeAudioText
+        })
+      });
+      const data = await resp.json();
+      const ttsLang  = ttsLangMap[targetLangCode] || 'en-US';
+      const scoreNum = parseInt(data.puntuacion) || 0;
+
+      if (!data.error) {
+        if (window.recordPhrase) window.recordPhrase(scoreNum, answer, data.correccion || '');
+        // Advance level if in Fundamentos mode and score is good
+        if (scoreNum >= 7 && currentMode === 'fund' && typeof unlockNextFundLevel === 'function') {
+          unlockNextFundLevel();
+        }
+        if (scoreNum === 10 && window._voxisRef) {
+          window._voxisRef.set({ tuvo_perfecto: true }, { merge: true }).catch(() => {});
+        }
+      }
+
+
+      const scoreColor = scoreNum >= 8 ? '#6EE7A0' : scoreNum >= 5 ? '#FFB347' : '#FF7F50';
+      const medal = scoreNum >= 8 ? '🏆' : scoreNum >= 5 ? '👍' : '💪';
+
+      resultBox.innerHTML = `
+        <div style="background:#131929;border:1px solid #1E2A45;border-radius:14px;padding:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <span style="font-size:0.8rem;color:#7A84A0;">✅ Corrección Nativa:</span>
+            <span style="font-size:1.2rem;font-weight:800;color:${scoreColor};">${medal} ${escHtml(data.puntuacion)}<span style="font-size:0.75rem;font-weight:400;color:#7A84A0;">/10</span></span>
+          </div>
+          <div style="color:#6EE7A0;font-size:0.95rem;font-weight:600;margin-bottom:8px;">${escHtml(data.correccion_nativa)}
+            <button onclick="playAudio('${escHtml(data.correccion_nativa).replace(/'/g,"\\'")}','${ttsLang}')" style="background:none;border:none;cursor:pointer;font-size:0.9rem;">🔊</button>
+          </div>
+          ${data.tip_pronunciacion ? `<div style="color:#9AA4C0;font-size:0.82rem;margin-bottom:6px;">📢 ${escHtml(data.tip_pronunciacion)}</div>` : ''}
+          ${data.explicacion_breve ? `<div style="color:#C9D0E0;font-size:0.85rem;line-height:1.5;margin-bottom:12px;">💡 ${escHtml(data.explicacion_breve)}</div>` : ''}
+          ${data.ejemplo_adicional ? `<div style="color:#FFB347;font-size:0.85rem;line-height:1.5;margin-bottom:10px;padding:8px;background:rgba(255,179,71,0.1);border-radius:8px;">
+            <span style="font-weight:bold;">Ejemplo:</span> ${escHtml(data.ejemplo_adicional)}
+            <button onclick="playAudio('${escHtml(data.ejemplo_adicional).replace(/'/g,"\\'")}','${ttsLang}')" style="background:none;border:none;cursor:pointer;font-size:0.9rem;">🔊</button>
+          </div>` : ''}
+          ${data.respuesta_roleplay ? `<div style="color:#E8EAF0;font-size:0.9rem;line-height:1.5;border-top:1px dashed #2E3F5C;padding-top:10px;margin-top:10px;">
+            <span style="color:#7A84A0;font-size:0.75rem;display:block;margin-bottom:4px;">🎭 Continúa la conversación:</span>
+            ${escHtml(data.respuesta_roleplay)}
+            <button onclick="playAudio('${escHtml(data.respuesta_roleplay).replace(/'/g,"\\'")}','${ttsLang}')" style="background:none;border:none;cursor:pointer;font-size:0.9rem;">🔊</button>
+          </div>` : ''}
+          ${scoreNum >= 7 ? '<div style="text-align:center;margin-top:14px;color:#6EE7A0;font-size:0.85rem;font-weight:700;">🎉 ¡Reto superado! Pulsa &quot;Siguiente Reto&quot; para avanzar.</div>' : '<div style="text-align:center;margin-top:14px;color:#FFB347;font-size:0.82rem;">¡Sigue practicando! Apunta a 7/10 para avanzar.</div>'}
+        </div>`;
+    } catch(err) {
+      resultBox.innerHTML = '<div style="color:#FF7F50;font-size:0.85rem;">' + (err.message || '⚠️ Error al evaluar') + '</div>';
+    }
+  }
+
+  // ─── RESULT DISPLAY (training screen) ───
+  function showLoading() {
+    const box = document.getElementById('result-box');
+    box.style.display = 'block';
+    box.innerHTML = `
+      <div style="text-align:center;padding:20px 0;color:#7A84A0;">
+        <div class="spinner"></div>
+        <div style="margin-top:10px;font-size:0.85rem;">Analizando con IA...</div>
+      </div>`;
+  }
+
+  function showResult(data, errMsg) {
+    const box = document.getElementById('result-box');
+    box.style.display = 'block';
+    if (errMsg || !data) {
+      box.innerHTML = `<div style="color:#FF7F50;font-size:0.85rem;padding:10px 0;">${errMsg}</div>`;
+      return;
+    }
+    const t = I18N[currentLang] || I18N['es'];
+
+    // ─── TTS: usar el idioma objetivo real (no hardcodeado en-US) ───
+    const targetLangCode = localStorage.getItem('voxis_target_lang') || 'en';
+    const ttsLangMap = {
+      'en': 'en-US', 'es': 'es-ES', 'fr': 'fr-FR', 'de': 'de-DE',
+      'it': 'it-IT', 'pt': 'pt-BR', 'zh': 'zh-CN', 'ja': 'ja-JP',
+      'ko': 'ko-KR', 'ru': 'ru-RU'
+    };
+    const ttsLang = ttsLangMap[targetLangCode] || 'en-US';
+
+    // ─── Calcular color del score ───
+    const scoreNum = parseInt(data.puntuacion) || 0;
+    const scoreColor = scoreNum >= 8 ? '#6EE7A0' : scoreNum >= 5 ? '#FFB347' : '#FF7F50';
+
+    box.innerHTML = `
+      <div class="result-row">
+        <span class="result-label" id="res-lbl-orig">${t.label_original}</span>
+        <span class="result-value original-text">${escHtml(data.original)}</span>
+      </div>
+      <div class="result-row">
+        <span class="result-label" id="res-lbl-corr">✅ Corrección Nativa
+          <button class="tts-btn" onclick="playAudio('${escHtml(data.correccion_nativa).replace(/'/g, "\\'")}', '${ttsLang}')" aria-label="Escuchar pronunciación">
+            🔊
+          </button>
+        </span>
+        <span class="result-value correction-text">${escHtml(data.correccion_nativa)}</span>
+      </div>
+      ${data.tip_pronunciacion ? `
+      <div class="result-row">
+        <span class="result-label" id="res-lbl-pron">📢 Tip de Pronunciación</span>
+        <span class="result-value">${escHtml(data.tip_pronunciacion)}</span>
+      </div>` : ''}
+      ${data.explicacion_breve ? `
+      <div class="result-row">
+        <span class="result-label">💡 Explicación del profesor</span>
+        <span class="result-value" style="line-height:1.5;color:#C9D0E0;">${escHtml(data.explicacion_breve)}</span>
+      </div>` : ''}
+      ${data.ejemplo_adicional ? `
+      <div class="result-row" style="background:rgba(255,179,71,0.05);border-color:#FFB347;">
+        <span class="result-label" style="color:#FFB347;">🔄 Ejemplo Adicional
+          <button class="tts-btn" onclick="playAudio('${escHtml(data.ejemplo_adicional).replace(/'/g, "\\'")}', '${ttsLang}')" aria-label="Escuchar ejemplo">🔊</button>
+        </span>
+        <span class="result-value">${escHtml(data.ejemplo_adicional)}</span>
+      </div>` : ''}
+      ${data.respuesta_roleplay ? `
+      <div class="result-row" style="border-top:1px dashed #2E3F5C;">
+        <span class="result-label">🎭 Continúa la conversación
+          <button class="tts-btn" onclick="playAudio('${escHtml(data.respuesta_roleplay).replace(/'/g, "\\'")}', '${ttsLang}')" aria-label="Escuchar respuesta">🔊</button>
+        </span>
+        <span class="result-value" style="color:#E8EAF0;">${escHtml(data.respuesta_roleplay)}</span>
+      </div>` : ''}
+      ${data.puntuacion ? `
+      <div class="result-row" style="align-items:center;flex-direction:row;justify-content:space-between;">
+        <span class="result-label">⭐ Puntuación</span>
+        <span style="font-size:1.4rem;font-weight:800;color:${scoreColor};">${escHtml(data.puntuacion)}<span style="font-size:0.85rem;font-weight:400;color:#7A84A0;">/10</span></span>
+      </div>` : ''}`;
+  }
+
+  function playAudio(text, lang) {
+    if (!window.speechSynthesis || !text) return;
+    
+    // Stop any currently playing audio and clear queue
+    window.speechSynthesis.cancel();
+
+    // Small delay to ensure previous speech is completely stopped before starting new one
+    setTimeout(() => {
+      function speak() {
+        // Double check cancellation right before we speak to prevent immediate doubles
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = lang || 'en-US';
+        const voices = window.speechSynthesis.getVoices();
+        let best = voices.find(v => v.lang.startsWith((lang || 'en-US').split('-')[0]) &&
+          (v.name.includes('Google') || v.name.includes('Natural') ||
+           v.name.includes('Premium') || v.name.includes('Samantha')));
+        if (!best) best = voices.find(v => v.lang.startsWith((lang || 'en-US').split('-')[0]));
+        if (best) utterance.voice = best;
+        utterance.onend  = () => {};
+        utterance.onerror = () => {};
+        window.speechSynthesis.speak(utterance);
+      }
+
+      const voices = window.speechSynthesis.getVoices();
+      if (voices && voices.length > 0) {
+        speak();
+      } else {
+        window.speechSynthesis.onvoiceschanged = () => {
+          window.speechSynthesis.onvoiceschanged = null;
+          speak();
+        };
+        setTimeout(speak, 400);
+      }
+    }, 250);
+  }
+
+  // Pre-load voices so they are ready when the user clicks 'play'
+  if (window.speechSynthesis) {
+    window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ─── PANEL MAESTRO OCULTO ───
+  // Se activa escribiendo VOXIS-ADMIN en el input principal de frases
+  function checkAdminCode(text) {
+    if (text.trim().toUpperCase() !== 'VOXIS-ADMIN') return false;
+    // Solo visible para la cuenta maestra
+    const masterEmail = 'adonis3151@gmail.com';
+    const currentEmail = (window.auth && window.auth.currentUser)
+      ? window.auth.currentUser.email
+      : localStorage.getItem('voxis_otp_email');
+    if (currentEmail !== masterEmail) return false;
+
+    // Mostrar panel
+    const emailTarget = prompt('🔐 PANEL MAESTRO VOXIS\n\nEscribe el email del usuario a gestionar:');
+    if (!emailTarget) return true;
+
+    const action = prompt(
+      `Usuario: ${emailTarget}\n\nElige acción:\n1 - Ver datos del usuario\n2 - Borrar historial y plan del usuario\n3 - Resetear sesión LOCAL (solo este dispositivo)\n4 - Cancelar`
+    );
+
+    if (action === '1') {
+      // Ver datos en Firestore
+      (async () => {
+        try {
+          const db = firebase.firestore();
+          const uidKey = 'otp_' + emailTarget.replace(/[^a-z0-9]/gi, '_');
+          const snap = await db.collection('usuarios').doc(uidKey).get();
+          if (snap.exists) {
+            const d = snap.data();
+            alert(`📊 Datos de ${emailTarget}:\nNombre: ${d.nombres || '-'}\nPlan: ${d.plan || 'free'}\nFrags hoy: ${d.frases_usadas_hoy || 0}\nRacha: ${d.racha_dias || 0} días\nTotal frases: ${d.total_frases || 0}`);
+          } else {
+            alert(`No se encontraron datos de Firestore para ${emailTarget}.\n(Nota: usuarios de Google tienen UID distinto, no el formato OTP)`);
+          }
+        } catch(e) { alert('Error al leer Firestore: ' + e.message); }
+      })();
+    } else if (action === '2') {
+      // Borrar datos
+      if (!confirm(`⚠️ ¿Seguro que quieres borrar TODO el historial de ${emailTarget}? Esta acción no se puede deshacer.`)) return true;
+      (async () => {
+        try {
+          const db = firebase.firestore();
+          const uidKey = 'otp_' + emailTarget.replace(/[^a-z0-9]/gi, '_');
+          await db.collection('usuarios').doc(uidKey).set({
+            frases_usadas_hoy: 0, ultima_fecha_uso: '', racha_dias: 0,
+            total_frases: 0, logros: [], errores_recientes: []
+          });
+          alert(`✅ Datos de ${emailTarget} reseteados en Firestore.`);
+        } catch(e) { alert('Error: ' + e.message); }
+      })();
+    } else if (action === '3') {
+      // Reset local (solo este dispositivo)
+      if (confirm('⚠️ Esto cerrará la sesión local en ESTE dispositivo. ¿Continuar?')) {
+        Object.keys(localStorage).filter(k => k.startsWith('voxis_')).forEach(k => localStorage.removeItem(k));
+        location.reload();
+      }
+    }
+    return true;
+  }
+
+  // ─── SISTEMA DE NIVELES – Desbloqueo por 5 retos ≥ 7/10 ───
+  function unlockNextFundLevel() {
+    const key = 'voxis_fund_passes';
+    const targetLang = localStorage.getItem('voxis_target_lang') || 'en';
+    const levelKey = `voxis_fund_level_${targetLang}`;
+    const passes = parseInt(localStorage.getItem(key) || '0') + 1;
+    localStorage.setItem(key, String(passes));
+
+    const currentLevel = parseInt(localStorage.getItem(levelKey) || '1');
+    if (passes % 5 === 0 && currentLevel < 20) {
+      const nextLevel = currentLevel + 1;
+      localStorage.setItem(levelKey, String(nextLevel));
+      localStorage.setItem(key, '0'); // reset counter
+      updateLevelUI(currentLevel, nextLevel);
+    }
+  }
+
+  function updateLevelUI(oldLevel, newLevel) {
+    // Marcar el card del nivel alcanzado como desbloqueado
+    for (let i = 1; i <= 5; i++) {
+      const card = document.querySelector(`.level-list .level-card:nth-child(${i})`);
+      if (!card) continue;
+      if (i <= newLevel) {
+        card.classList.remove('locked');
+        card.classList.add('unlocked');
+        const lock = card.querySelector('.level-lock');
+        if (lock) lock.remove();
+      }
+    }
+    if (newLevel > oldLevel) {
+      // Mostrar popup de logro
+      const popup = document.getElementById('sticker-popup');
+      document.getElementById('popup-icon').textContent = '🔓';
+      document.getElementById('popup-title').textContent = `¡Nivel ${newLevel} desbloqueado!`;
+      document.getElementById('popup-desc').textContent = `Has superado los primeros ${newLevel * 5} retos. ¡Sigue así!`;
+      if (popup) popup.style.display = 'flex';
+    }
+  }
+
+  // Restaurar nivel UI al cargar la página
+  (function restoreLevelUI() {
+    const targetLang = localStorage.getItem('voxis_target_lang') || 'en';
+    const currentLevel = parseInt(localStorage.getItem(`voxis_fund_level_${targetLang}`) || '1');
+    if (currentLevel > 1) updateLevelUI(0, currentLevel);
+  })();
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // No hay botón de reset — eliminado del menú
+    // Interceptar input principal para código maestro
+    const ti = document.getElementById('text-input');
+    if (ti) {
+      ti.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && checkAdminCode(ti.value)) {
+          ti.value = '';
+          e.preventDefault();
+        }
+      });
+    }
+  });
+
+</script>
+
+<!-- PWA: Service Worker Registration -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('Voxis SW registered:', reg.scope))
+        .catch(err => console.warn('SW registration failed:', err));
+    });
+  }
+</script>
+
+<!-- CONTACT MODAL LOGIC -->
+<script>
+  const CONTACT_I18N = {
+    es: { title: "Soporte Técnico", desc: "Déjanos un mensaje y te responderemos lo antes posible.", nameStr: "Tu Nombre", emailStr: "Tu Correo (para responderte)", msgStr: "¿Cómo podemos ayudarte?", btn: "Enviar Mensaje 🚀", success: "Mensaje enviado exitosamente. Nos pondremos en contacto contigo pronto.", error: "Hubo un error al enviar el mensaje." },
+    en: { title: "Technical Support", desc: "Leave us a message and we'll reply as soon as possible.", nameStr: "Your Name", emailStr: "Your Email (to reply)", msgStr: "How can we help you?", btn: "Send Message 🚀", success: "Message sent successfully. We will get back to you soon.", error: "There was an error sending the message." },
+    fr: { title: "Support Technique", desc: "Laissez-nous un message et nous vous répondrons dès que possible.", nameStr: "Votre Nom", emailStr: "Votre Email (pour vous répondre)", msgStr: "Comment pouvons-nous vous aider?", btn: "Envoyer le message 🚀", success: "Message envoyé avec succès. Nous vous contacterons bientôt.", error: "Une erreur s'est produite lors de l'envoi." },
+    de: { title: "Technischer Support", desc: "Hinterlassen Sie eine Nachricht.", nameStr: "Dein Name", emailStr: "Deine E-Mail", msgStr: "Wie können wir helfen?", btn: "Nachricht senden 🚀", success: "Nachricht erfolgreich gesendet.", error: "Fehler beim Senden der Nachricht." },
+    it: { title: "Supporto Tecnico", desc: "Lasciaci un messaggio.", nameStr: "Tuo Nome", emailStr: "Tua Email", msgStr: "Come possiamo aiutarti?", btn: "Invia Messaggio 🚀", success: "Messaggio inviato con successo.", error: "Errore durante l'invio." },
+    pt: { title: "Suporte Técnico", desc: "Deixe-nos uma mensagem e responderemos o mais breve possível.", nameStr: "Seu Nome", emailStr: "Seu E-mail (para resposta)", msgStr: "Como podemos ajudar?", btn: "Enviar Mensagem 🚀", success: "Mensagem enviada com sucesso.", error: "Ocorreu um erro ao enviar a mensagem." },
+    zh: { title: "技术支持", desc: "请给我们留言", nameStr: "你的名字", emailStr: "你的邮箱", msgStr: "我们能怎么帮助你？", btn: "发送 🚀", success: "发送成功", error: "发送失败" },
+    ja: { title: "テクニカルサポート", desc: "メッセージを残してください", nameStr: "名前", emailStr: "メールアドレス", msgStr: "どうしましたか？", btn: "送信 🚀", success: "送信されました", error: "エラーが発生しました" },
+    ko: { title: "기술 지원", desc: "메시지를 남겨주세요", nameStr: "이름", emailStr: "이메일", msgStr: "무엇을 도와드릴까요?", btn: "보내기 🚀", success: "성공적으로 보냈습니다", error: "오류가 발생했습니다" },
+    ru: { title: "Техническая поддержка", desc: "Оставьте нам сообщение", nameStr: "Ваше имя", emailStr: "Ваш Email", msgStr: "Как мы можем помочь?", btn: "Отправить 🚀", success: "Успешно отправлено", error: "Ошибка" }
+  };
+
+  window.openContactModal = function() {
+    const lang = (window.currentLang || localStorage.getItem('voxis_native_lang') || 'es');
+    const t = CONTACT_I18N[lang] || CONTACT_I18N['es'];
+    document.getElementById('contact-title').textContent = t.title;
+    document.getElementById('contact-desc').textContent = t.desc;
+    document.getElementById('contact-name').placeholder = t.nameStr;
+    document.getElementById('contact-email').placeholder = t.emailStr;
+    document.getElementById('contact-msg').placeholder = t.msgStr;
+    document.getElementById('contact-submit-btn').textContent = t.btn;
+    
+    // Autofill defaults
+    document.getElementById('contact-name').value = localStorage.getItem('voxis_user_name') || '';
+    const defEmail = (window.auth && window.auth.currentUser) ? window.auth.currentUser.email : localStorage.getItem('voxis_otp_email');
+    document.getElementById('contact-email').value = defEmail || '';
+    document.getElementById('contact-msg').value = '';
+    
+    document.getElementById('contact-popup').style.display = 'flex';
+  };
+
+  window.submitContactForm = async function() {
+    const name = document.getElementById('contact-name').value.trim();
+    const email = document.getElementById('contact-email').value.trim();
+    const msg = document.getElementById('contact-msg').value.trim();
+    const btn = document.getElementById('contact-submit-btn');
+    const lang = (window.currentLang || localStorage.getItem('voxis_native_lang') || 'es');
+    const t = CONTACT_I18N[lang] || CONTACT_I18N['es'];
+
+    if(!name || !email || !msg) {
+      alert("⚠️ Por favor completa todos los campos / Please fill all fields");
+      return;
+    }
+
+    const origTxt = btn.textContent;
+    btn.textContent = "⏳...";
+    btn.disabled = true;
+
+    try {
+      const apiUrl = typeof API_URL !== 'undefined' ? API_URL : "https://voxis-backend.onrender.com";
+      const resp = await fetch(apiUrl + "/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, message: msg })
+      });
+      const data = await resp.json();
+      if(data.ok) {
+        alert("✅ " + t.success);
+        document.getElementById('contact-popup').style.display = 'none';
+      } else {
+        alert("❌ " + t.error + " - " + (data.error || ""));
+      }
+    } catch(e) {
+      alert("❌ " + t.error);
+    } finally {
+      btn.textContent = origTxt;
+      btn.disabled = false;
+    }
+  };
+</script>
+
+</body>
+</html>
