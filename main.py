@@ -439,4 +439,4 @@ async def receive_contact(data: ContactRequest):
         return {"ok": True}
     except Exception as e:
         logger.error(f"Error enviando contacto: {e}")
-        return {"ok": False, "error": "Fallo al enviar el mensaje al servidor."}
+        return {"ok": False, "error": f"Fallo al enviar el mensaje al servidor: {str(e)}"}
