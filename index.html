@@ -1852,6 +1852,7 @@
     //  RECENT SESSIONS
     // ════════════════════════════════════════════
     async function loadRecentSessions(db, uid) {
+      console.log("[DEBUG] loadRecentSessions called for UID:", uid);
       try {
         const snap = await db.collection('usuarios').doc(uid)
           .collection('sesiones')
@@ -1861,16 +1862,23 @@
 
         const sessions = [];
         snap.forEach(doc => sessions.push(doc.data()));
+        console.log("[DEBUG] Found", sessions.length, "sessions from Firestore");
         renderTrainingCards(sessions);
       } catch(e) {
+        console.error("[DEBUG] Error fetching sessions:", e);
         renderTrainingCards([]);
       }
     }
 
     function renderTrainingCards(sessions) {
+      console.log("[DEBUG] renderTrainingCards called with", sessions.length, "items.");
       const grid = document.getElementById('training-grid');
-      if (!grid) return;
+      if (!grid) {
+        console.log("[DEBUG] Element training-grid NOT FOUND on page!");
+        return;
+      }
       if (!sessions.length) {
+        console.log("[DEBUG] Rendering empty training grid.");
         grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#7A84A0;font-size:0.82rem;padding:20px 0;">¡Completa tu primer reto para ver tu historial aquí! 🎯</div>';
         return;
       }
@@ -1905,7 +1913,6 @@
 
     // ════════════════════════════════════════════
     //  GAMIFICATION — LOGROS & STICKERS
-    // ════════════════════════════════════════════
     const LOGROS_CATALOG = [
       { id:'rookie',      icon:'🌟', name:'Primer Paso',     desc:'Completaste tu primera frase',     check: (d) => (d.total_frases || 0) >= 1  },
       { id:'en_llamas',   icon:'🔥', name:'En Llamas',       desc:'3 días de racha consecutivos',     check: (d) => (d.racha_dias   || 0) >= 3  },
@@ -1913,7 +1920,7 @@
       { id:'diamante',    icon:'💎', name:'Racha Diamante',  desc:'7 días de racha seguidos',         check: (d) => (d.racha_dias   || 0) >= 7  },
       { id:'explorador',  icon:'🗺️', name:'Explorador',      desc:'Usaste Fundamentos y Situaciones', check: (d) => d.uso_ambos_modos === true  },
       { id:'maraton',     icon:'🏃', name:'Maratón',         desc:'50 frases en total',               check: (d) => (d.total_frases || 0) >= 50 },
-      { id:'rey',         icon:'👑', name:'Rey del Idioma',  desc:'30 días de racha',                 check: (d) => (d.racha_dias   || 0) >= 30 },
+      { id:'rey',         icon:'👑', name:'Rey del Idioma',  desc:'30 días de racha',                 check: (d) => (d.racha_dias   || 0) >= 30 }
     ];
 
     async function checkLogrosDesbloqueados(db, uid, racha, totalHoy) {
